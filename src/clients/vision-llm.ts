@@ -1,4 +1,4 @@
-import { callOpenRouter } from './openrouter.js';
+import { callOpenRouter } from "./openrouter.js";
 
 export const callVisionLLM = async <T>(
   base64Image: string,
@@ -11,15 +11,15 @@ export const callVisionLLM = async <T>(
   const { data } = await callOpenRouter<T>({
     apiKey,
     messages: [
-      { role: 'system', content: systemPrompt },
+      { role: "system", content: systemPrompt },
       {
-        role: 'user',
+        role: "user",
         content: [
           {
-            type: 'image_url',
+            type: "image_url",
             image_url: { url: `data:image/jpeg;base64,${base64Image}` },
           },
-          { type: 'text', text: userText },
+          { type: "text", text: userText },
         ],
       },
     ],

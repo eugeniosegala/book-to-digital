@@ -1,6 +1,6 @@
-import { ORIENTATION_LLM_MIN_CONFIDENCE } from '../../config.js';
-import { callVisionLLM } from '../../clients/vision-llm.js';
-import { rotateImage, type ImageData } from '../../utils/image.js';
+import { ORIENTATION_LLM_MIN_CONFIDENCE } from "../../config.js";
+import { callVisionLLM } from "../../clients/vision-llm.js";
+import { rotateImage, type ImageData } from "../../utils/image.js";
 
 const ORIENTATION_PROMPT = `You are analyzing a photographed book page. Your ONLY task is to choose the rotation needed to make the page upright for reading.
 
@@ -12,12 +12,13 @@ Rules:
 - If the page is ambiguous, still choose the best rotation but lower the confidence.`;
 
 const ORIENTATION_SCHEMA = {
-  type: 'object',
+  type: "object",
   properties: {
-    rotationDegrees: { type: 'integer', enum: [0, 90, 180, 270] },
-    confidence: { type: 'number' },
+    rotationDegrees: { type: "string", enum: ["0", "90", "180", "270"] },
+    confidence: { type: "number" },
   },
-  required: ['rotationDegrees', 'confidence'],
+  required: ["rotationDegrees", "confidence"],
+  additionalProperties: false,
 };
 
 export const normalizePageOrientation = async (
@@ -27,17 +28,24 @@ export const normalizePageOrientation = async (
 ): Promise<ImageData> => {
   const isPortrait = image.height > image.width;
 
-  const result = await callVisionLLM<{ rotationDegrees: 0 | 90 | 180 | 270; confidence: number }>(
-    image.buffer.toString('base64'),
+  const result = await callVisionLLM<{
+    rotationDegrees: "0" | "90" | "180" | "270";
+    confidence: number;
+  }>(
+    image.buffer.toString("base64"),
     apiKey,
     ORIENTATION_PROMPT,
-    'Choose the clockwise rotation needed to make this photographed book page upright. Return only 0, 90, 180, or 270.',
-    'page_orientation',
+    "Choose the clockwise rotation needed to make this photographed book page upright. Return only 0, 90, 180, or 270.",
+    "page_orientation",
     ORIENTATION_SCHEMA,
   );
+  const rotationDegrees = Number(result.rotationDegrees) as 0 | 90 | 180 | 270;
 
   if (isPortrait) {
-    if (result.confidence < ORIENTATION_LLM_MIN_CONFIDENCE || result.rotationDegrees !== 180) {
+    if (
+      result.confidence < ORIENTATION_LLM_MIN_CONFIDENCE ||
+      rotationDegrees !== 180
+    ) {
       return image;
     }
 
@@ -50,11 +58,11 @@ export const normalizePageOrientation = async (
     );
   }
 
-  const rotated = await rotateImage(image.buffer, result.rotationDegrees);
+  const rotated = await rotateImage(image.buffer, rotationDegrees);
 
   if (rotated.height <= rotated.width) {
     throw new Error(
-      `Vision orientation fallback did not recover a portrait image for ${filePath} (rotation ${result.rotationDegrees})`,
+      `Vision orientation fallback did not recover a portrait image for ${filePath} (rotation ${rotationDegrees})`,
     );
   }
 

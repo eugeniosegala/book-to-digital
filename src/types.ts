@@ -1,14 +1,14 @@
 export enum BlockType {
-  TITLE = 'TITLE',
-  SECTION_HEADER = 'SECTION_HEADER',
-  TEXT = 'TEXT',
-  LIST = 'LIST',
-  HEADER = 'HEADER',
-  FOOTER = 'FOOTER',
-  PAGE_NUMBER = 'PAGE_NUMBER',
-  FIGURE = 'FIGURE',
-  FIGURE_CAPTION = 'FIGURE_CAPTION',
-  TABLE = 'TABLE',
+  TITLE = "TITLE",
+  SECTION_HEADER = "SECTION_HEADER",
+  TEXT = "TEXT",
+  LIST = "LIST",
+  HEADER = "HEADER",
+  FOOTER = "FOOTER",
+  PAGE_NUMBER = "PAGE_NUMBER",
+  FIGURE = "FIGURE",
+  FIGURE_CAPTION = "FIGURE_CAPTION",
+  TABLE = "TABLE",
 }
 
 export interface BoundingBox {
@@ -35,7 +35,7 @@ export interface ProcessedPage {
   errors: string[];
 }
 
-export type FigureType = 'full_page' | 'illustration' | 'inline';
+export type FigureType = "full_page" | "illustration" | "inline";
 
 export interface FigureInfo {
   boundingBox: BoundingBox;
@@ -48,7 +48,7 @@ export interface VisionAnalysis {
   figures: FigureInfo[];
 }
 
-export type SortOrder = 'name' | 'date';
+export type SortOrder = "name" | "date";
 
 export interface PipelineConfig {
   inputDir: string;

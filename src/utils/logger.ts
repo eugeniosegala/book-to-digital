@@ -9,15 +9,15 @@ export const isVerbose = () => verboseEnabled;
 
 const timestamp = () => {
   const d = new Date();
-  const h = String(d.getHours()).padStart(2, '0');
-  const m = String(d.getMinutes()).padStart(2, '0');
-  const s = String(d.getSeconds()).padStart(2, '0');
+  const h = String(d.getHours()).padStart(2, "0");
+  const m = String(d.getMinutes()).padStart(2, "0");
+  const s = String(d.getSeconds()).padStart(2, "0");
   return `\x1b[2m${h}:${m}:${s}\x1b[0m`;
 };
 
 const clearProgress = () => {
   if (progressActive) {
-    process.stderr.write('\r\x1b[K');
+    process.stderr.write("\r\x1b[K");
     progressActive = false;
   }
 };
@@ -44,7 +44,11 @@ export const debug = (message: string) => {
   }
 };
 
-export const progress = (current: number, total: number, label = 'Processing') => {
+export const progress = (
+  current: number,
+  total: number,
+  label = "Processing",
+) => {
   const pct = Math.round((current / total) * 100);
   const line = `${label}: ${current}/${total} (${pct}%)`;
   if (current === total) {

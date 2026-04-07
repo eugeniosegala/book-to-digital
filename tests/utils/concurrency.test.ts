@@ -1,8 +1,8 @@
-import { describe, it, expect, vi } from 'vitest';
-import { processWithConcurrency } from '../../src/utils/concurrency.js';
+import { describe, it, expect, vi } from "vitest";
+import { processWithConcurrency } from "../../src/utils/concurrency.js";
 
-describe('processWithConcurrency', () => {
-  it('processes all items and returns results in order', async () => {
+describe("processWithConcurrency", () => {
+  it("processes all items and returns results in order", async () => {
     const items = [1, 2, 3, 4, 5];
     const results = await processWithConcurrency(
       items,
@@ -12,7 +12,7 @@ describe('processWithConcurrency', () => {
     expect(results).toEqual([2, 4, 6, 8, 10]);
   });
 
-  it('respects concurrency limit', async () => {
+  it("respects concurrency limit", async () => {
     let running = 0;
     let maxRunning = 0;
 
@@ -31,7 +31,7 @@ describe('processWithConcurrency', () => {
     expect(maxRunning).toBeLessThanOrEqual(3);
   });
 
-  it('calls progress callback', async () => {
+  it("calls progress callback", async () => {
     const onProgress = vi.fn();
     const items = [1, 2, 3];
 
@@ -41,21 +41,21 @@ describe('processWithConcurrency', () => {
     expect(onProgress).toHaveBeenLastCalledWith(3, 3);
   });
 
-  it('handles empty input', async () => {
+  it("handles empty input", async () => {
     const results = await processWithConcurrency([], async (item) => item, 3);
     expect(results).toEqual([]);
   });
 
-  it('propagates errors', async () => {
+  it("propagates errors", async () => {
     await expect(
       processWithConcurrency(
         [1, 2, 3],
         async (item) => {
-          if (item === 2) throw new Error('fail');
+          if (item === 2) throw new Error("fail");
           return item;
         },
         2,
       ),
-    ).rejects.toThrow('fail');
+    ).rejects.toThrow("fail");
   });
 });

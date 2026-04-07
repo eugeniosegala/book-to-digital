@@ -32,6 +32,7 @@ The pipeline processes book photos through a linear flow: **scan → OCR + visio
 ### Core flow (`src/pipeline.ts`)
 
 `processBook()` orchestrates the full pipeline:
+
 1. `scanForImages()` finds and sorts page photos in the input directory
 2. Pages are processed in parallel (bounded by `--concurrency`):
    - `readImage()` loads and auto-rotates via EXIF
@@ -63,5 +64,6 @@ The pipeline processes book photos through a linear flow: **scan → OCR + visio
 ## Environment Variables
 
 Defined in `.env` (see `.env.example`):
+
 - `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY` / `AWS_REGION` — AWS credentials (or use `~/.aws/credentials`)
 - `OPENROUTER_API_KEY` — Enables vision LLM features and translation

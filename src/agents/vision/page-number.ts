@@ -1,4 +1,4 @@
-import { callVisionLLM } from '../../clients/vision-llm.js';
+import { callVisionLLM } from "../../clients/vision-llm.js";
 
 const PAGE_NUMBER_PROMPT = `You are analyzing a photographed book page. Your ONLY task is to identify the official printed page number.
 
@@ -18,11 +18,11 @@ What is NOT a page number — you MUST return null for these:
 When in doubt, return null. It is far better to miss a page number than to report a wrong one.`;
 
 const PAGE_NUMBER_SCHEMA = {
-  type: 'object',
+  type: "object",
   properties: {
-    pageNumber: { type: ['string', 'null'] },
+    pageNumber: { type: ["string", "null"] },
   },
-  required: ['pageNumber'],
+  required: ["pageNumber"],
 };
 
 export const detectPageNumber = async (
@@ -30,9 +30,12 @@ export const detectPageNumber = async (
   apiKey: string,
 ): Promise<string | null> => {
   const result = await callVisionLLM<{ pageNumber: string | null }>(
-    base64Image, apiKey, PAGE_NUMBER_PROMPT,
-    'What is the printed page number on this book page?',
-    'page_number', PAGE_NUMBER_SCHEMA,
+    base64Image,
+    apiKey,
+    PAGE_NUMBER_PROMPT,
+    "What is the printed page number on this book page?",
+    "page_number",
+    PAGE_NUMBER_SCHEMA,
   );
   return result.pageNumber;
 };

@@ -1,8 +1,8 @@
-import fs from 'node:fs/promises';
-import path from 'node:path';
-import sharp from 'sharp';
-import { CROP_PADDING, JPEG_OUTPUT_QUALITY } from '../config.js';
-import type { BoundingBox } from '../types.js';
+import fs from "node:fs/promises";
+import path from "node:path";
+import sharp from "sharp";
+import { CROP_PADDING, JPEG_OUTPUT_QUALITY } from "../config.js";
+import type { BoundingBox } from "../types.js";
 
 export interface ImageData {
   buffer: Buffer;
@@ -10,7 +10,10 @@ export interface ImageData {
   height: number;
 }
 
-const toImageData = async (pipeline: sharp.Sharp, sourceLabel: string): Promise<ImageData> => {
+const toImageData = async (
+  pipeline: sharp.Sharp,
+  sourceLabel: string,
+): Promise<ImageData> => {
   const { data, info } = await pipeline.toBuffer({ resolveWithObject: true });
 
   if (!info.width || !info.height) {
@@ -30,7 +33,8 @@ export const readImage = async (filePath: string): Promise<ImageData> => {
 export const rotateImage = async (
   imageBuffer: Buffer,
   degrees: 0 | 90 | 180 | 270,
-): Promise<ImageData> => toImageData(sharp(imageBuffer).rotate(degrees), `rotation ${degrees}`);
+): Promise<ImageData> =>
+  toImageData(sharp(imageBuffer).rotate(degrees), `rotation ${degrees}`);
 
 export const cropRegion = async (
   imageBuffer: Buffer,
@@ -44,8 +48,14 @@ export const cropRegion = async (
 
   const left = Math.max(0, Math.round((box.left - padX) * imageWidth));
   const top = Math.max(0, Math.round((box.top - padY) * imageHeight));
-  const right = Math.min(imageWidth, Math.round((box.left + box.width + padX) * imageWidth));
-  const bottom = Math.min(imageHeight, Math.round((box.top + box.height + padY) * imageHeight));
+  const right = Math.min(
+    imageWidth,
+    Math.round((box.left + box.width + padX) * imageWidth),
+  );
+  const bottom = Math.min(
+    imageHeight,
+    Math.round((box.top + box.height + padY) * imageHeight),
+  );
 
   const width = right - left;
   const height = bottom - top;
@@ -62,7 +72,14 @@ export const cropRegion = async (
   return { buffer: cropped, width, height };
 };
 
-const IMAGE_EXTENSIONS = new Set(['.jpg', '.jpeg', '.png', '.webp', '.tiff', '.tif']);
+const IMAGE_EXTENSIONS = new Set([
+  ".jpg",
+  ".jpeg",
+  ".png",
+  ".webp",
+  ".tiff",
+  ".tif",
+]);
 
 export const isImageFile = (filePath: string): boolean => {
   const ext = path.extname(filePath).toLowerCase();

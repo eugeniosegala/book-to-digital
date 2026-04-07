@@ -1,10 +1,7 @@
-import sharp from 'sharp';
-import {
-  FIGURE_CROP_MARGIN,
-  JPEG_OUTPUT_QUALITY,
-} from '../../config.js';
-import type { FigureInfo } from '../../types.js';
-import { callVisionLLM } from '../../clients/vision-llm.js';
+import sharp from "sharp";
+import { FIGURE_CROP_MARGIN, JPEG_OUTPUT_QUALITY } from "../../config.js";
+import type { FigureInfo } from "../../types.js";
+import { callVisionLLM } from "../../clients/vision-llm.js";
 
 const FIGURES_PROMPT = `You are analyzing a photographed book page. Your ONLY task is to identify images, illustrations, photographs, and drawings on the page.
 
@@ -18,31 +15,34 @@ Rules:
 - If there are no figures on the page, return an empty array.`;
 
 const FIGURES_SCHEMA = {
-  type: 'object',
+  type: "object",
   properties: {
     figures: {
-      type: 'array',
+      type: "array",
       items: {
-        type: 'object',
+        type: "object",
         properties: {
           boundingBox: {
-            type: 'object',
+            type: "object",
             properties: {
-              top: { type: 'number' },
-              left: { type: 'number' },
-              width: { type: 'number' },
-              height: { type: 'number' },
+              top: { type: "number" },
+              left: { type: "number" },
+              width: { type: "number" },
+              height: { type: "number" },
             },
-            required: ['top', 'left', 'width', 'height'],
+            required: ["top", "left", "width", "height"],
           },
-          caption: { type: ['string', 'null'] },
-          type: { type: 'string', enum: ['full_page', 'illustration', 'inline'] },
+          caption: { type: ["string", "null"] },
+          type: {
+            type: "string",
+            enum: ["full_page", "illustration", "inline"],
+          },
         },
-        required: ['boundingBox', 'caption', 'type'],
+        required: ["boundingBox", "caption", "type"],
       },
     },
   },
-  required: ['figures'],
+  required: ["figures"],
 };
 
 // --- Bounding box helpers ---
@@ -91,9 +91,12 @@ export const detectFigures = async (
   apiKey: string,
 ): Promise<FigureInfo[]> => {
   const result = await callVisionLLM<{ figures: FigureInfo[] }>(
-    base64Image, apiKey, FIGURES_PROMPT,
-    'Identify all figures on this book page.',
-    'page_figures', FIGURES_SCHEMA,
+    base64Image,
+    apiKey,
+    FIGURES_PROMPT,
+    "Identify all figures on this book page.",
+    "page_figures",
+    FIGURES_SCHEMA,
   );
 
   clampBoxes(result.figures);
@@ -101,15 +104,21 @@ export const detectFigures = async (
   // If any figures have degenerate boxes, retry with a 10%-cropped image to reduce noise
   if (result.figures.length > 0 && result.figures.some(hasInvalidBox)) {
     const croppedBuffer = await cropImageCenter(imageBuffer);
-    const croppedBase64 = croppedBuffer.toString('base64');
+    const croppedBase64 = croppedBuffer.toString("base64");
     const retryResult = await callVisionLLM<{ figures: FigureInfo[] }>(
-      croppedBase64, apiKey, FIGURES_PROMPT,
-      'Identify all figures on this book page.',
-      'page_figures', FIGURES_SCHEMA,
+      croppedBase64,
+      apiKey,
+      FIGURES_PROMPT,
+      "Identify all figures on this book page.",
+      "page_figures",
+      FIGURES_SCHEMA,
     );
     clampBoxes(retryResult.figures);
 
-    if (retryResult.figures.length > 0 && !retryResult.figures.some(hasInvalidBox)) {
+    if (
+      retryResult.figures.length > 0 &&
+      !retryResult.figures.some(hasInvalidBox)
+    ) {
       retryResult.figures.forEach(mapBoxToFullImage);
       return retryResult.figures;
     }

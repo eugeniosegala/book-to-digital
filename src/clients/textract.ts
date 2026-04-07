@@ -2,8 +2,8 @@ import {
   TextractClient,
   AnalyzeDocumentCommand,
   type AnalyzeDocumentResponse,
-} from '@aws-sdk/client-textract';
-import { TEXTRACT_MAX_ATTEMPTS } from '../config.js';
+} from "@aws-sdk/client-textract";
+import { TEXTRACT_MAX_ATTEMPTS } from "../config.js";
 
 const clients = new Map<string, TextractClient>();
 
@@ -24,7 +24,7 @@ export const analyzePageImage = async (
 
   const command = new AnalyzeDocumentCommand({
     Document: { Bytes: imageBuffer },
-    FeatureTypes: ['LAYOUT'],
+    FeatureTypes: ["LAYOUT"],
   });
 
   return client.send(command);

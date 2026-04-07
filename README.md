@@ -93,7 +93,7 @@ npx tsx src/cli.ts <input-folder> [options]
 ### Options
 
 | Option                       | Description                                  | Default                         |
-|------------------------------|----------------------------------------------|---------------------------------|
+| ---------------------------- | -------------------------------------------- | ------------------------------- |
 | `-o, --output <path>`        | Output .docx file path                       | `./output.docx`                 |
 | `-c, --concurrency <n>`      | Max pages processed in parallel              | `5`                             |
 | `-r, --region <region>`      | AWS region                                   | `AWS_REGION` env or `us-east-1` |

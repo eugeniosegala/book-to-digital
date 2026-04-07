@@ -1,25 +1,28 @@
-import fs from 'node:fs/promises';
-import path from 'node:path';
-import type { PipelineConfig, ProcessedPage, VisionAnalysis } from './types.js';
-import { scanForImages } from './agents/scanner/file-scanner.js';
-import { readImage } from './utils/image.js';
-import { analyzePageImage } from './clients/textract.js';
-import { parseLayoutBlocks } from './agents/ocr/layout-parser.js';
-import { analyzePageVision } from './agents/vision/page-enrichment.js';
-import { normalizePageOrientation } from './agents/vision/orientation.js';
-import { reorderBlocks } from './agents/vision/reading-order.js';
-import { processWithConcurrency } from './utils/concurrency.js';
-import { writeDocument } from './agents/document/docx-builder.js';
-import { translatePages, resolveLanguage } from './agents/translation/translator.js';
-import { toErrorMessage } from './utils/error.js';
-import * as log from './utils/logger.js';
+import fs from "node:fs/promises";
+import path from "node:path";
+import type { PipelineConfig, ProcessedPage, VisionAnalysis } from "./types.js";
+import { scanForImages } from "./agents/scanner/file-scanner.js";
+import { readImage } from "./utils/image.js";
+import { analyzePageImage } from "./clients/textract.js";
+import { parseLayoutBlocks } from "./agents/ocr/layout-parser.js";
+import { analyzePageVision } from "./agents/vision/page-enrichment.js";
+import { normalizePageOrientation } from "./agents/vision/orientation.js";
+import { reorderBlocks } from "./agents/vision/reading-order.js";
+import { processWithConcurrency } from "./utils/concurrency.js";
+import { writeDocument } from "./agents/document/docx-builder.js";
+import {
+  translatePages,
+  resolveLanguage,
+} from "./agents/translation/translator.js";
+import { toErrorMessage } from "./utils/error.js";
+import * as log from "./utils/logger.js";
 
-const DEBUG_ORIGINAL_DIR = path.join('debug', 'original');
-const DEBUG_TRANSLATED_DIR = path.join('debug', 'translated');
+const DEBUG_ORIGINAL_DIR = path.join("debug", "original");
+const DEBUG_TRANSLATED_DIR = path.join("debug", "translated");
 
 const debugFileName = (page: ProcessedPage) => {
   const baseName = path.basename(page.filePath, path.extname(page.filePath));
-  return `page-${String(page.pageNumber).padStart(3, '0')}-${baseName}.json`;
+  return `page-${String(page.pageNumber).padStart(3, "0")}-${baseName}.json`;
 };
 
 const stripBuffers = (page: ProcessedPage) => ({
@@ -45,17 +48,22 @@ const processPage = async (
 
   try {
     const rawImage = await readImage(filePath);
-    const { buffer, width, height } = await normalizePageOrientation(rawImage, filePath, apiKey);
+    const { buffer, width, height } = await normalizePageOrientation(
+      rawImage,
+      filePath,
+      apiKey,
+    );
 
     const label = `Page ${pageNumber}`;
-    const orientationCorrected = buffer !== rawImage.buffer
-      || width !== rawImage.width
-      || height !== rawImage.height;
+    const orientationCorrected =
+      buffer !== rawImage.buffer ||
+      width !== rawImage.width ||
+      height !== rawImage.height;
     if (orientationCorrected) {
       log.warn(`${label}: corrected page orientation via vision fallback`);
     }
 
-    let contentBlocks: ProcessedPage['contentBlocks'];
+    let contentBlocks: ProcessedPage["contentBlocks"];
     let bookPageNumber: string | undefined;
     try {
       // Run Textract and vision LLM in parallel
@@ -66,16 +74,29 @@ const processPage = async (
         return { pageNumber: null, figures: [] } as VisionAnalysis;
       });
 
-      const [textractResponse, visionResult] = await Promise.all([textractPromise, visionPromise]);
-      log.debug(`${label}: Vision → bookPage=${visionResult.pageNumber}, figures=${visionResult.figures.length}`);
+      const [textractResponse, visionResult] = await Promise.all([
+        textractPromise,
+        visionPromise,
+      ]);
+      log.debug(
+        `${label}: Vision → bookPage=${visionResult.pageNumber}, figures=${visionResult.figures.length}`,
+      );
 
       const result = await parseLayoutBlocks(
-        textractResponse, buffer, width, height, visionResult,
+        textractResponse,
+        buffer,
+        width,
+        height,
+        visionResult,
       );
       bookPageNumber = result.bookPageNumber;
 
-      const base64 = buffer.toString('base64');
-      contentBlocks = await reorderBlocks(base64, result.contentBlocks, apiKey).catch((err) => {
+      const base64 = buffer.toString("base64");
+      contentBlocks = await reorderBlocks(
+        base64,
+        result.contentBlocks,
+        apiKey,
+      ).catch((err) => {
         log.warn(`${label}: Reading order failed — ${toErrorMessage(err)}`);
         return result.contentBlocks;
       });
@@ -85,7 +106,13 @@ const processPage = async (
       contentBlocks = [];
     }
 
-    const page: ProcessedPage = { pageNumber, filePath, contentBlocks, bookPageNumber, errors };
+    const page: ProcessedPage = {
+      pageNumber,
+      filePath,
+      contentBlocks,
+      bookPageNumber,
+      errors,
+    };
 
     if (log.isVerbose()) {
       writeDebugPage(DEBUG_ORIGINAL_DIR, page).catch(() => {});
@@ -111,11 +138,15 @@ export const processBook = async (config: PipelineConfig): Promise<void> => {
 
   const openRouterApiKey = process.env.OPENROUTER_API_KEY;
   if (!openRouterApiKey) {
-    throw new Error('OPENROUTER_API_KEY is required — set it in .env or your environment');
+    throw new Error(
+      "OPENROUTER_API_KEY is required — set it in .env or your environment",
+    );
   }
 
   // Scan for images
-  log.info(`Scanning ${config.inputDir} for images (sort: ${config.sortOrder})...`);
+  log.info(
+    `Scanning ${config.inputDir} for images (sort: ${config.sortOrder})...`,
+  );
   let imagePaths = await scanForImages(config.inputDir, config.sortOrder);
   log.info(`Found ${imagePaths.length} images`);
 
@@ -126,12 +157,15 @@ export const processBook = async (config: PipelineConfig): Promise<void> => {
   }
 
   // OCR + vision analysis for each page
-  log.info(`Extracting text & figures (Textract + Vision LLM, ${config.concurrency} pages in parallel)...`);
+  log.info(
+    `Extracting text & figures (Textract + Vision LLM, ${config.concurrency} pages in parallel)...`,
+  );
   const pages = await processWithConcurrency(
     imagePaths,
-    async (filePath, index) => processPage(filePath, index + 1, config.awsRegion, openRouterApiKey),
+    async (filePath, index) =>
+      processPage(filePath, index + 1, config.awsRegion, openRouterApiKey),
     config.concurrency,
-    (completed, total) => log.progress(completed, total, 'OCR & layout'),
+    (completed, total) => log.progress(completed, total, "OCR & layout"),
   );
 
   // Report errors
@@ -139,18 +173,22 @@ export const processBook = async (config: PipelineConfig): Promise<void> => {
   if (failed.length > 0) {
     log.warn(`${failed.length} page(s) had errors:`);
     for (const page of failed) {
-      log.warn(`  Page ${page.pageNumber} (${path.basename(page.filePath)}): ${page.errors.join(', ')}`);
+      log.warn(
+        `  Page ${page.pageNumber} (${path.basename(page.filePath)}): ${page.errors.join(", ")}`,
+      );
     }
   }
 
   // Build and write an original document
-  log.info('Building Word document...');
+  log.info("Building Word document...");
   await writeDocument(pages, config.outputPath);
   log.info(`Output: ${path.resolve(config.outputPath)}`);
 
   // Translate and write the second document if requested
   if (config.translateLanguage) {
-    log.info(`Translating to ${resolveLanguage(config.translateLanguage)} (${config.concurrency} pages in parallel)...`);
+    log.info(
+      `Translating to ${resolveLanguage(config.translateLanguage)} (${config.concurrency} pages in parallel)...`,
+    );
     const translatedPages = await translatePages(pages, {
       apiKey: openRouterApiKey,
       targetLanguage: config.translateLanguage,
@@ -163,11 +201,13 @@ export const processBook = async (config: PipelineConfig): Promise<void> => {
 
     if (log.isVerbose()) {
       await Promise.all(
-        translatedPages.map((p) => writeDebugPage(DEBUG_TRANSLATED_DIR, p).catch(() => {})),
+        translatedPages.map((p) =>
+          writeDebugPage(DEBUG_TRANSLATED_DIR, p).catch(() => {}),
+        ),
       );
     }
 
-    log.info('Building translated Word document...');
+    log.info("Building translated Word document...");
     await writeDocument(translatedPages, translatedPath);
     log.info(`Translated output: ${path.resolve(translatedPath)}`);
   }

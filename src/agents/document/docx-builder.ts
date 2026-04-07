@@ -5,22 +5,25 @@ import {
   BorderStyle,
   Packer,
   SectionType,
-} from 'docx';
-import fs from 'node:fs/promises';
-import path from 'node:path';
-import type { ProcessedPage } from '../../types.js';
-import { contentBlockToDocxElements } from './page-elements.js';
-import { sanitizeDocxText } from './text-sanitizer.js';
+} from "docx";
+import fs from "node:fs/promises";
+import path from "node:path";
+import type { ProcessedPage } from "../../types.js";
+import { contentBlockToDocxElements } from "./page-elements.js";
+import { sanitizeDocxText } from "./text-sanitizer.js";
 
 const separator = (): Paragraph =>
   new Paragraph({
     border: {
-      bottom: { style: BorderStyle.SINGLE, size: 1, color: 'CCCCCC', space: 1 },
+      bottom: { style: BorderStyle.SINGLE, size: 1, color: "CCCCCC", space: 1 },
     },
     spacing: { before: 300, after: 300 },
   });
 
-const buildPageSection = (page: ProcessedPage, isLast: boolean): Paragraph[] => {
+const buildPageSection = (
+  page: ProcessedPage,
+  isLast: boolean,
+): Paragraph[] => {
   const elements: Paragraph[] = [];
 
   // Page caption
@@ -33,7 +36,7 @@ const buildPageSection = (page: ProcessedPage, isLast: boolean): Paragraph[] => 
           ),
           italics: true,
           size: 16,
-          color: '999999',
+          color: "999999",
         }),
       ],
       spacing: { after: 200 },
@@ -53,7 +56,7 @@ const buildPageSection = (page: ProcessedPage, isLast: boolean): Paragraph[] => 
           new TextRun({
             text: sanitizeDocxText(`[Error: ${err}]`),
             italics: true,
-            color: 'CC0000',
+            color: "CC0000",
             size: 18,
           }),
         ],
@@ -69,7 +72,9 @@ const buildPageSection = (page: ProcessedPage, isLast: boolean): Paragraph[] => 
   return elements;
 };
 
-export const buildDocument = async (pages: ProcessedPage[]): Promise<Buffer> => {
+export const buildDocument = async (
+  pages: ProcessedPage[],
+): Promise<Buffer> => {
   const allChildren: Paragraph[] = [];
 
   for (let i = 0; i < pages.length; i++) {

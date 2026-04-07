@@ -1,8 +1,13 @@
-import type { AnalyzeDocumentResponse, Block } from '@aws-sdk/client-textract';
-import { BlockType, type ContentBlock, type BoundingBox, type VisionAnalysis } from '../../types.js';
-import { TEXTRACT_BLOCK_TYPE_MAP, SKIP_BLOCK_TYPES } from '../../config.js';
-import { cropRegion, type ImageData } from '../../utils/image.js';
-import * as log from '../../utils/logger.js';
+import type { AnalyzeDocumentResponse, Block } from "@aws-sdk/client-textract";
+import {
+  BlockType,
+  type ContentBlock,
+  type BoundingBox,
+  type VisionAnalysis,
+} from "../../types.js";
+import { TEXTRACT_BLOCK_TYPE_MAP, SKIP_BLOCK_TYPES } from "../../config.js";
+import { cropRegion, type ImageData } from "../../utils/image.js";
+import * as log from "../../utils/logger.js";
 
 export interface ParseResult {
   contentBlocks: ContentBlock[];
@@ -21,20 +26,24 @@ const toBoundingBox = (block: Block): BoundingBox => {
   };
 };
 
-const resolveChildText = (block: Block, blockMap: Map<string, Block>): string => {
-  const childIds = block.Relationships
-    ?.filter((r) => r.Type === 'CHILD')
-    .flatMap((r) => r.Ids ?? []) ?? [];
+const resolveChildText = (
+  block: Block,
+  blockMap: Map<string, Block>,
+): string => {
+  const childIds =
+    block.Relationships?.filter((r) => r.Type === "CHILD").flatMap(
+      (r) => r.Ids ?? [],
+    ) ?? [];
 
   const lines: string[] = [];
   for (const id of childIds) {
     const child = blockMap.get(id);
-    if (child?.BlockType === 'LINE') {
-      lines.push(child.Text ?? '');
+    if (child?.BlockType === "LINE") {
+      lines.push(child.Text ?? "");
     }
   }
 
-  return lines.join('\n');
+  return lines.join("\n");
 };
 
 // ── Vision helpers ──────────────────────────────────────────────────
@@ -55,7 +64,7 @@ const buildFigureBlock = async (
 
   return {
     type: BlockType.FIGURE,
-    text: '',
+    text: "",
     confidence: 100,
     boundingBox: box,
     imageBuffer: imageData.buffer,
@@ -64,7 +73,7 @@ const buildFigureBlock = async (
 };
 
 const buildVisionFigureBlocks = async (
-  fig: VisionAnalysis['figures'][number],
+  fig: VisionAnalysis["figures"][number],
   imageBuffer: Buffer,
   imageWidth: number,
   imageHeight: number,
@@ -72,16 +81,32 @@ const buildVisionFigureBlocks = async (
   const { boundingBox: box } = fig;
   const result: ContentBlock[] = [];
 
-  const invalidBox = box.width <= 0 || box.height <= 0 || box.left >= 1 || box.top >= 1;
+  const invalidBox =
+    box.width <= 0 || box.height <= 0 || box.left >= 1 || box.top >= 1;
   if (invalidBox) {
-    log.warn(`Invalid bounding box, using full-page image: ${JSON.stringify(box)}`);
+    log.warn(
+      `Invalid bounding box, using full-page image: ${JSON.stringify(box)}`,
+    );
   }
 
-  const isFullPage = fig.type === 'full_page' || invalidBox;
-  result.push(await buildFigureBlock(imageBuffer, imageWidth, imageHeight, box, isFullPage));
+  const isFullPage = fig.type === "full_page" || invalidBox;
+  result.push(
+    await buildFigureBlock(
+      imageBuffer,
+      imageWidth,
+      imageHeight,
+      box,
+      isFullPage,
+    ),
+  );
 
   if (fig.caption) {
-    result.push({ type: BlockType.FIGURE_CAPTION, text: fig.caption, confidence: 100, boundingBox: box });
+    result.push({
+      type: BlockType.FIGURE_CAPTION,
+      text: fig.caption,
+      confidence: 100,
+      boundingBox: box,
+    });
   }
 
   return result;
@@ -90,7 +115,7 @@ const buildVisionFigureBlocks = async (
 // Match each Textract LAYOUT_FIGURE to the vision figure with the closest vertical position
 const findClosestVisionFigure = (
   textractTop: number,
-  figures: VisionAnalysis['figures'],
+  figures: VisionAnalysis["figures"],
   unmatched: Set<number>,
 ): number => {
   let closest = -1;
@@ -140,12 +165,21 @@ export const parseLayoutBlocks = async (
     // Use Textract LAYOUT_FIGURE as positional anchor, replace with closest vision figure
     if (type === BlockType.FIGURE) {
       const textractTop = toBoundingBox(block).top;
-      const closestIdx = findClosestVisionFigure(textractTop, vision.figures, unmatchedFigures);
+      const closestIdx = findClosestVisionFigure(
+        textractTop,
+        vision.figures,
+        unmatchedFigures,
+      );
       if (closestIdx !== -1) {
         unmatchedFigures.delete(closestIdx);
-        contentBlocks.push(...await buildVisionFigureBlocks(
-          vision.figures[closestIdx], imageBuffer, imageWidth, imageHeight,
-        ));
+        contentBlocks.push(
+          ...(await buildVisionFigureBlocks(
+            vision.figures[closestIdx],
+            imageBuffer,
+            imageWidth,
+            imageHeight,
+          )),
+        );
       }
       continue;
     }
@@ -155,14 +189,24 @@ export const parseLayoutBlocks = async (
 
     const boundingBox = toBoundingBox(block);
     const text = resolveChildText(block, blockMap);
-    contentBlocks.push({ type, text, confidence: block.Confidence ?? 0, boundingBox });
+    contentBlocks.push({
+      type,
+      text,
+      confidence: block.Confidence ?? 0,
+      boundingBox,
+    });
   }
 
   // Append vision figures that didn't match any Textract figure
   for (const idx of unmatchedFigures) {
-    contentBlocks.push(...await buildVisionFigureBlocks(
-      vision.figures[idx], imageBuffer, imageWidth, imageHeight,
-    ));
+    contentBlocks.push(
+      ...(await buildVisionFigureBlocks(
+        vision.figures[idx],
+        imageBuffer,
+        imageWidth,
+        imageHeight,
+      )),
+    );
   }
 
   const bookPageNumber = vision.pageNumber ?? undefined;

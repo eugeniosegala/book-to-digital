@@ -1,12 +1,15 @@
-import fs from 'node:fs/promises';
-import path from 'node:path';
-import { orderBy } from 'natural-orderby';
-import { isImageFile } from '../../utils/image.js';
-import type { SortOrder } from '../../types.js';
+import fs from "node:fs/promises";
+import path from "node:path";
+import { orderBy } from "natural-orderby";
+import { isImageFile } from "../../utils/image.js";
+import type { SortOrder } from "../../types.js";
 
 const sortByName = (files: string[]): string[] => orderBy(files);
 
-const sortByDate = async (dirPath: string, files: string[]): Promise<string[]> => {
+const sortByDate = async (
+  dirPath: string,
+  files: string[],
+): Promise<string[]> => {
   const withStats = await Promise.all(
     files.map(async (file) => {
       const stat = await fs.stat(path.join(dirPath, file));
@@ -19,7 +22,7 @@ const sortByDate = async (dirPath: string, files: string[]): Promise<string[]> =
 
 export const scanForImages = async (
   dirPath: string,
-  sort: SortOrder = 'name',
+  sort: SortOrder = "name",
 ): Promise<string[]> => {
   const stat = await fs.stat(dirPath);
   if (!stat.isDirectory()) {
@@ -33,6 +36,9 @@ export const scanForImages = async (
     throw new Error(`No image files found in ${dirPath}`);
   }
 
-  const sorted = sort === 'date' ? await sortByDate(dirPath, imageFiles) : sortByName(imageFiles);
+  const sorted =
+    sort === "date"
+      ? await sortByDate(dirPath, imageFiles)
+      : sortByName(imageFiles);
   return sorted.map((file) => path.join(dirPath, file));
 };

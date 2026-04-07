@@ -1,4 +1,4 @@
-import { BlockType } from './types.js';
+import { BlockType } from "./types.js";
 
 // --- Block type mappings ---
 
@@ -18,37 +18,42 @@ export const TEXTRACT_BLOCK_TYPE_MAP: Record<string, BlockType> = {
 
 // Block type categories — single source of truth for subsets used across modules
 export const SKIP_BLOCK_TYPES = new Set<BlockType>([
-  BlockType.HEADER, BlockType.FOOTER, BlockType.PAGE_NUMBER,
+  BlockType.HEADER,
+  BlockType.FOOTER,
+  BlockType.PAGE_NUMBER,
 ]);
 export const TRANSLATABLE_BLOCK_TYPES = new Set<BlockType>([
-  BlockType.TITLE, BlockType.SECTION_HEADER, BlockType.TEXT,
-  BlockType.LIST, BlockType.FIGURE_CAPTION, BlockType.TABLE,
+  BlockType.TITLE,
+  BlockType.SECTION_HEADER,
+  BlockType.TEXT,
+  BlockType.LIST,
+  BlockType.FIGURE_CAPTION,
+  BlockType.TABLE,
 ]);
 
 // --- Language mappings ---
 
 export const LANGUAGE_MAP: Record<string, string> = {
-  en: 'British English',
-  de: 'German',
-  it: 'Italian',
-  fr: 'French',
-  es: 'Spanish',
-  pt: 'Portuguese',
-  nl: 'Dutch',
-  pl: 'Polish',
-  cs: 'Czech',
-  ru: 'Russian',
-  ja: 'Japanese',
-  zh: 'Chinese',
+  en: "British English",
+  de: "German",
+  it: "Italian",
+  fr: "French",
+  es: "Spanish",
+  pt: "Portuguese",
+  nl: "Dutch",
+  pl: "Polish",
+  cs: "Czech",
+  ru: "Russian",
+  ja: "Japanese",
+  zh: "Chinese",
 };
 
 // --- Client config ---
 
-export const OPENROUTER_URL = 'https://openrouter.ai/api/v1/chat/completions';
-export const OPENROUTER_MODEL = 'google/gemini-3.1-pro-preview';
+export const OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions";
+export const OPENROUTER_MODEL = "google/gemini-3.1-pro-preview";
 export const OPENROUTER_RETRY_DELAYS = [1000, 2000, 4000] as const;
 export const OPENROUTER_MAX_RETRIES = OPENROUTER_RETRY_DELAYS.length;
-
 
 export const TEXTRACT_MAX_ATTEMPTS = 5;
 

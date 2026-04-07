@@ -1,7 +1,12 @@
-import { describe, it, expect } from 'vitest';
-import path from 'node:path';
-import sharp from 'sharp';
-import { readImage, cropRegion, isImageFile, rotateImage } from '../../src/utils/image.js';
+import { describe, it, expect } from "vitest";
+import path from "node:path";
+import sharp from "sharp";
+import {
+  readImage,
+  cropRegion,
+  isImageFile,
+  rotateImage,
+} from "../../src/utils/image.js";
 
 const createTestImage = async (
   width: number,
@@ -19,33 +24,36 @@ const createTestImage = async (
   return image.toBuffer();
 };
 
-describe('isImageFile', () => {
-  it('accepts common image extensions', () => {
-    expect(isImageFile('photo.jpg')).toBe(true);
-    expect(isImageFile('photo.jpeg')).toBe(true);
-    expect(isImageFile('photo.png')).toBe(true);
-    expect(isImageFile('photo.webp')).toBe(true);
-    expect(isImageFile('photo.tiff')).toBe(true);
-    expect(isImageFile('photo.tif')).toBe(true);
+describe("isImageFile", () => {
+  it("accepts common image extensions", () => {
+    expect(isImageFile("photo.jpg")).toBe(true);
+    expect(isImageFile("photo.jpeg")).toBe(true);
+    expect(isImageFile("photo.png")).toBe(true);
+    expect(isImageFile("photo.webp")).toBe(true);
+    expect(isImageFile("photo.tiff")).toBe(true);
+    expect(isImageFile("photo.tif")).toBe(true);
   });
 
-  it('is case-insensitive', () => {
-    expect(isImageFile('photo.JPG')).toBe(true);
-    expect(isImageFile('photo.Png')).toBe(true);
+  it("is case-insensitive", () => {
+    expect(isImageFile("photo.JPG")).toBe(true);
+    expect(isImageFile("photo.Png")).toBe(true);
   });
 
-  it('rejects non-image files', () => {
-    expect(isImageFile('doc.txt')).toBe(false);
-    expect(isImageFile('doc.pdf')).toBe(false);
-    expect(isImageFile('doc.docx')).toBe(false);
+  it("rejects non-image files", () => {
+    expect(isImageFile("doc.txt")).toBe(false);
+    expect(isImageFile("doc.pdf")).toBe(false);
+    expect(isImageFile("doc.docx")).toBe(false);
   });
 });
 
-describe('readImage', () => {
-  it('reads image buffer and dimensions', async () => {
-    const tmpPath = path.join(import.meta.dirname, '../fixtures/test-image.jpg');
+describe("readImage", () => {
+  it("reads image buffer and dimensions", async () => {
+    const tmpPath = path.join(
+      import.meta.dirname,
+      "../fixtures/test-image.jpg",
+    );
     const imgBuffer = await createTestImage(200, 300);
-    const fs = await import('node:fs/promises');
+    const fs = await import("node:fs/promises");
     await fs.writeFile(tmpPath, imgBuffer);
 
     const result = await readImage(tmpPath);
@@ -56,10 +64,13 @@ describe('readImage', () => {
     await fs.unlink(tmpPath);
   });
 
-  it('applies EXIF auto-rotation before returning dimensions', async () => {
-    const tmpPath = path.join(import.meta.dirname, '../fixtures/test-image-exif.jpg');
+  it("applies EXIF auto-rotation before returning dimensions", async () => {
+    const tmpPath = path.join(
+      import.meta.dirname,
+      "../fixtures/test-image-exif.jpg",
+    );
     const imgBuffer = await createTestImage(300, 200, 6);
-    const fs = await import('node:fs/promises');
+    const fs = await import("node:fs/promises");
     await fs.writeFile(tmpPath, imgBuffer);
 
     const result = await readImage(tmpPath);
@@ -69,13 +80,13 @@ describe('readImage', () => {
     await fs.unlink(tmpPath);
   });
 
-  it('throws for non-existent file', async () => {
-    await expect(readImage('/nonexistent/file.jpg')).rejects.toThrow();
+  it("throws for non-existent file", async () => {
+    await expect(readImage("/nonexistent/file.jpg")).rejects.toThrow();
   });
 });
 
-describe('rotateImage', () => {
-  it('rotates image dimensions by 90 degrees', async () => {
+describe("rotateImage", () => {
+  it("rotates image dimensions by 90 degrees", async () => {
     const imgBuffer = await createTestImage(300, 200);
     const rotated = await rotateImage(imgBuffer, 90);
 
@@ -85,8 +96,8 @@ describe('rotateImage', () => {
   });
 });
 
-describe('cropRegion', () => {
-  it('crops a region from an image with padding', async () => {
+describe("cropRegion", () => {
+  it("crops a region from an image with padding", async () => {
     const imgBuffer = await createTestImage(400, 600);
     const cropped = await cropRegion(imgBuffer, 400, 600, {
       top: 0.25,
@@ -101,7 +112,7 @@ describe('cropRegion', () => {
     expect(cropped.buffer.length).toBeGreaterThan(0);
   });
 
-  it('clamps padded crop to image bounds', async () => {
+  it("clamps padded crop to image bounds", async () => {
     const imgBuffer = await createTestImage(400, 600);
     const cropped = await cropRegion(imgBuffer, 400, 600, {
       top: 0.8,
@@ -115,10 +126,10 @@ describe('cropRegion', () => {
     expect(cropped.height).toBe(135);
   });
 
-  it('throws for zero-size crop', async () => {
+  it("throws for zero-size crop", async () => {
     const imgBuffer = await createTestImage(400, 600);
     await expect(
       cropRegion(imgBuffer, 400, 600, { top: 0, left: 0, width: 0, height: 0 }),
-    ).rejects.toThrow('Invalid crop region');
+    ).rejects.toThrow("Invalid crop region");
   });
 });
