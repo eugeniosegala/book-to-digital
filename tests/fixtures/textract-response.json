@@ -1,0 +1,124 @@
+{
+  "Blocks": [
+    {
+      "Id": "line-1",
+      "BlockType": "LINE",
+      "Text": "Chapter 1: Introduction",
+      "Confidence": 99.5,
+      "Geometry": {
+        "BoundingBox": { "Top": 0.05, "Left": 0.1, "Width": 0.8, "Height": 0.03 }
+      }
+    },
+    {
+      "Id": "line-2",
+      "BlockType": "LINE",
+      "Text": "This is the first paragraph of the chapter.",
+      "Confidence": 98.2,
+      "Geometry": {
+        "BoundingBox": { "Top": 0.12, "Left": 0.1, "Width": 0.8, "Height": 0.03 }
+      }
+    },
+    {
+      "Id": "line-3",
+      "BlockType": "LINE",
+      "Text": "It continues with more detail about the topic.",
+      "Confidence": 97.8,
+      "Geometry": {
+        "BoundingBox": { "Top": 0.16, "Left": 0.1, "Width": 0.8, "Height": 0.03 }
+      }
+    },
+    {
+      "Id": "line-4",
+      "BlockType": "LINE",
+      "Text": "Fig. 1: A historic street view",
+      "Confidence": 96.0,
+      "Geometry": {
+        "BoundingBox": { "Top": 0.62, "Left": 0.1, "Width": 0.4, "Height": 0.02 }
+      }
+    },
+    {
+      "Id": "line-5",
+      "BlockType": "LINE",
+      "Text": "Second section text here.",
+      "Confidence": 98.0,
+      "Geometry": {
+        "BoundingBox": { "Top": 0.7, "Left": 0.1, "Width": 0.8, "Height": 0.03 }
+      }
+    },
+    {
+      "Id": "line-6",
+      "BlockType": "LINE",
+      "Text": "Page 42",
+      "Confidence": 99.0,
+      "Geometry": {
+        "BoundingBox": { "Top": 0.95, "Left": 0.45, "Width": 0.1, "Height": 0.02 }
+      }
+    },
+    {
+      "Id": "layout-title",
+      "BlockType": "LAYOUT_TITLE",
+      "Confidence": 99.0,
+      "Geometry": {
+        "BoundingBox": { "Top": 0.05, "Left": 0.1, "Width": 0.8, "Height": 0.03 }
+      },
+      "Relationships": [
+        { "Type": "CHILD", "Ids": ["line-1"] }
+      ]
+    },
+    {
+      "Id": "layout-text-1",
+      "BlockType": "LAYOUT_TEXT",
+      "Confidence": 98.0,
+      "Geometry": {
+        "BoundingBox": { "Top": 0.12, "Left": 0.1, "Width": 0.8, "Height": 0.08 }
+      },
+      "Relationships": [
+        { "Type": "CHILD", "Ids": ["line-2", "line-3"] }
+      ]
+    },
+    {
+      "Id": "layout-figure",
+      "BlockType": "LAYOUT_FIGURE",
+      "Confidence": 95.0,
+      "Geometry": {
+        "BoundingBox": { "Top": 0.25, "Left": 0.1, "Width": 0.4, "Height": 0.35 }
+      },
+      "Relationships": [
+        { "Type": "CHILD", "Ids": [] }
+      ]
+    },
+    {
+      "Id": "layout-caption",
+      "BlockType": "LAYOUT_FIGURE_CAPTION",
+      "Confidence": 96.0,
+      "Geometry": {
+        "BoundingBox": { "Top": 0.62, "Left": 0.1, "Width": 0.4, "Height": 0.02 }
+      },
+      "Relationships": [
+        { "Type": "CHILD", "Ids": ["line-4"] }
+      ]
+    },
+    {
+      "Id": "layout-text-2",
+      "BlockType": "LAYOUT_TEXT",
+      "Confidence": 98.0,
+      "Geometry": {
+        "BoundingBox": { "Top": 0.7, "Left": 0.1, "Width": 0.8, "Height": 0.03 }
+      },
+      "Relationships": [
+        { "Type": "CHILD", "Ids": ["line-5"] }
+      ]
+    },
+    {
+      "Id": "layout-page-number",
+      "BlockType": "LAYOUT_PAGE_NUMBER",
+      "Confidence": 99.0,
+      "Geometry": {
+        "BoundingBox": { "Top": 0.95, "Left": 0.45, "Width": 0.1, "Height": 0.02 }
+      },
+      "Relationships": [
+        { "Type": "CHILD", "Ids": ["line-6"] }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,37 @@
+{
+  "name": "book-to-digital",
+  "version": "0.1.0",
+  "description": "Converts photos of physical books into clean, structured, fully translated digital documents",
+  "private": true,
+  "license": "MIT",
+  "type": "module",
+  "bin": {
+    "book-to-digital": "./dist/cli.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "start": "tsx src/cli.ts",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "lint": "tsc --noEmit"
+  },
+  "volta": {
+    "node": "24.13.1",
+    "npm": "11.8.0"
+  },
+  "dependencies": {
+    "@aws-sdk/client-textract": "^3.800.0",
+    "commander": "^13.1.0",
+    "docx": "^9.5.0",
+    "dotenv": "^17.4.0",
+    "natural-orderby": "^4.0.0",
+    "p-limit": "^6.2.0",
+    "sharp": "^0.34.1"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.8.0",
+    "vitest": "^3.1.0"
+  }
+}
