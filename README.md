@@ -1,6 +1,8 @@
-# book-to-digital
+# Book to Digital
 
 Convert photos of physical books into clean, structured digital Word documents — preserving layout, images, and meaning.
+
+This repository is designed to help researchers turn physical books into digital documents, and optionally translated versions, so the material is easier to use in their research workflows.
 
 ## How it works
 
@@ -46,10 +48,6 @@ flowchart TD
     N --> O
     J --> O
 
-    style A fill:#f0f4ff,stroke:#4a6fa5
-    style J fill:#d4edda,stroke:#28a745
-    style N fill:#d4edda,stroke:#28a745
-    style O fill:#e2e3e5,stroke:#6c757d
 ```
 
 ## Prerequisites
