@@ -10,20 +10,27 @@ export interface ImageData {
   height: number;
 }
 
+const toImageData = async (pipeline: sharp.Sharp, sourceLabel: string): Promise<ImageData> => {
+  const { data, info } = await pipeline.toBuffer({ resolveWithObject: true });
+
+  if (!info.width || !info.height) {
+    throw new Error(`Could not read dimensions for ${sourceLabel}`);
+  }
+
+  return { buffer: data, width: info.width, height: info.height };
+};
+
 export const readImage = async (filePath: string): Promise<ImageData> => {
   const rawBuffer = await fs.readFile(filePath);
 
   // Auto-rotate based on EXIF orientation, then strip EXIF to avoid double-rotation
-  const rotated = sharp(rawBuffer).rotate();
-  const buffer = await rotated.toBuffer();
-  const metadata = await sharp(buffer).metadata();
-
-  if (!metadata.width || !metadata.height) {
-    throw new Error(`Could not read dimensions for ${filePath}`);
-  }
-
-  return { buffer, width: metadata.width, height: metadata.height };
+  return toImageData(sharp(rawBuffer).rotate(), filePath);
 };
+
+export const rotateImage = async (
+  imageBuffer: Buffer,
+  degrees: 0 | 90 | 180 | 270,
+): Promise<ImageData> => toImageData(sharp(imageBuffer).rotate(degrees), `rotation ${degrees}`);
 
 export const cropRegion = async (
   imageBuffer: Buffer,

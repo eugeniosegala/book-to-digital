@@ -10,6 +10,7 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import type { ProcessedPage } from '../../types.js';
 import { contentBlockToDocxElements } from './page-elements.js';
+import { sanitizeDocxText } from './text-sanitizer.js';
 
 const separator = (): Paragraph =>
   new Paragraph({
@@ -27,7 +28,9 @@ const buildPageSection = (page: ProcessedPage, isLast: boolean): Paragraph[] => 
     new Paragraph({
       children: [
         new TextRun({
-          text: `— Page ${page.bookPageNumber ?? page.pageNumber} · ${path.basename(page.filePath)} —`,
+          text: sanitizeDocxText(
+            `— Page ${page.bookPageNumber ?? page.pageNumber} · ${path.basename(page.filePath)} —`,
+          ),
           italics: true,
           size: 16,
           color: '999999',
@@ -47,7 +50,12 @@ const buildPageSection = (page: ProcessedPage, isLast: boolean): Paragraph[] => 
     elements.push(
       new Paragraph({
         children: [
-          new TextRun({ text: `[Error: ${err}]`, italics: true, color: 'CC0000', size: 18 }),
+          new TextRun({
+            text: sanitizeDocxText(`[Error: ${err}]`),
+            italics: true,
+            color: 'CC0000',
+            size: 18,
+          }),
         ],
       }),
     );

@@ -64,3 +64,4 @@ export const CROP_PADDING = 0.05;
 export const FIGURE_CROP_MARGIN = 0.1;
 export const JPEG_OUTPUT_QUALITY = 90;
 export const MAX_IMAGE_WIDTH_PTS = 432; // 6 inches
+export const ORIENTATION_LLM_MIN_CONFIDENCE = 0.9;

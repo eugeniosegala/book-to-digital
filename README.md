@@ -12,49 +12,61 @@ This repository is designed to help researchers turn physical books into digital
   />
 </p>
 
+## Demo
+
+[Watch the demo video](assets/book-to-digital-demo.mp4)
+
 ## How it works
 
-1. Point the tool at a folder of page photos (JPG/PNG)
-2. Each page is processed in parallel:
-    - **AWS Textract** extracts text with layout analysis (headings, paragraphs, lists, tables)
-    - **Vision LLM** (Gemini 3.1 Pro via OpenRouter) detects figures, bounding boxes, captions, and printed page numbers
-3. Figures are cropped from the page images using LLM-detected bounding boxes
-4. Everything is assembled into a formatted **.docx** file with text, headings, images, and captions
-5. Optionally, a **translated** version of the document is generated using an LLM (one page at a time, with context
-   overlap for continuity)
+1. Scan the input folder for page images and sort them by filename or file date.
+2. Process pages with bounded concurrency. Each image is loaded and auto-rotated from EXIF metadata before analysis.
+3. For each page, run **AWS Textract** and the **Vision LLM** in parallel.
+   - **Textract** extracts layout-aware text blocks such as titles, section headers, text, lists, and tables.
+   - **Vision LLM** detects printed page numbers plus figures, figure bounding boxes, and captions.
+4. Merge the OCR and vision results into a single page structure.
+   - Textract figure anchors are replaced with cropped figure images from the source page.
+   - Vision captions are attached to their figures.
+   - A second vision pass reorders blocks for correct reading order on complex or multi-column pages and removes caption duplicates.
+5. Build the primary Word document from the processed pages, including page markers, text, tables, figures, captions, and inline error placeholders for any failed pages.
+6. If translation is enabled, clone the processed pages, repair cross-page hyphen splits, translate translatable blocks in batches with neighboring-page context, and write a second `.docx` alongside the original.
+
+If `--verbose` is enabled, the pipeline also writes per-page debug JSON files under `debug/original` and `debug/translated`.
 
 ## Pipeline
 
 ```mermaid
 flowchart TD
-    A["📂 Folder of page photos"] --> B["Scan & sort images"]
+    A["📂 Folder of page photos"] --> B["Scan images and sort by name or date"]
+    B --> C["Process pages with bounded concurrency"]
+    C --> D["Load image and auto-rotate from EXIF"]
 
-    B --> C["For each page in parallel"]
+    D --> E["Layout OCR
+    AWS Textract"]
+    D --> F["Page number + figure analysis
+    Vision LLM via OpenRouter"]
 
-    C --> D["Load image & fix orientation"]
-
-    D --> E["OCR with layout analysis
-    (AWS Textract)"]
-    D --> F["Detect figures & page numbers
-    (Vision LLM)"]
-
-    E --> G["Merge results, crop figures,
-    fix column splits"]
+    E --> G["Merge OCR blocks with vision results"]
     F --> G
 
-    G --> H["Structured page content"]
+    G --> H["Crop figures and attach captions"]
+    H --> I["Fix reading order
+    and deduplicate caption text"]
+    I --> J["Structured processed pages"]
 
-    H --> I["Assemble styled Word document"]
-    I --> J["📄 output.docx"]
+    J --> K["Build original Word document"]
+    K --> L["📄 output.docx"]
 
-    H --> K{"Translate?"}
-    K -- Yes --> L["Translate page by page
-    with context overlap"]
-    L --> M["Assemble translated document"]
-    M --> N["📄 output.en.docx"]
-    K -- No --> O(("Done"))
-    N --> O
-    J --> O
+    J --> M{"Translate?"}
+    M -- Yes --> N["Clone pages and repair
+    cross-page hyphen splits"]
+    N --> O["Translate text blocks in batches
+    with neighboring-page context"]
+    O --> P["Build translated Word document"]
+    P --> Q["📄 output.<lang>.docx"]
+
+    M -- No --> R(("Done"))
+    L --> R
+    Q --> R
 
 ```
 
@@ -63,7 +75,7 @@ flowchart TD
 - Node.js 24+
 - AWS credentials configured (`~/.aws/credentials`, env vars, or IAM role)
 - AWS Textract access in your chosen region
-- (Optional) [OpenRouter](https://openrouter.ai/) API key for vision-based figure detection and translation
+- [OpenRouter](https://openrouter.ai/) API key for vision-based page analysis and translation
 
 ## Setup
 
@@ -83,7 +95,7 @@ npx tsx src/cli.ts <input-folder> [options]
 | Option                       | Description                                  | Default                         |
 |------------------------------|----------------------------------------------|---------------------------------|
 | `-o, --output <path>`        | Output .docx file path                       | `./output.docx`                 |
-| `-c, --concurrency <n>`      | Max concurrent Textract calls                | `5`                             |
+| `-c, --concurrency <n>`      | Max pages processed in parallel              | `5`                             |
 | `-r, --region <region>`      | AWS region                                   | `AWS_REGION` env or `us-east-1` |
 | `-s, --sort <order>`         | Sort order: `name` or `date`                 | `name`                          |
 | `-n, --max-pages <n>`        | Max number of pages to process (for testing) |                                 |

@@ -1,3 +1,4 @@
+import JSZip from 'jszip';
 import { describe, it, expect } from 'vitest';
 import { buildDocument } from '../../../src/agents/document/docx-builder.js';
 import { BlockType, type ProcessedPage } from '../../../src/types.js';
@@ -44,5 +45,28 @@ describe('buildDocument', () => {
   it('handles empty pages array', async () => {
     const buffer = await buildDocument([]);
     expect(buffer[0]).toBe(0x50);
+  });
+
+  it('removes XML-illegal control characters from document text', async () => {
+    const buffer = await buildDocument([
+      {
+        ...makePage(15),
+        contentBlocks: [
+          {
+            type: BlockType.FIGURE_CAPTION,
+            text: 'Abb. 2. Veit Sto\x11: Darbringung im Tempel.',
+            confidence: 100,
+            boundingBox: { top: 0.1, left: 0.1, width: 0.8, height: 0.1 },
+          },
+        ],
+      },
+    ]);
+
+    const zip = await JSZip.loadAsync(buffer);
+    const documentXml = await zip.file('word/document.xml')?.async('string');
+
+    expect(documentXml).toBeDefined();
+    expect(documentXml).not.toContain('\x11');
+    expect(documentXml).toContain('Abb. 2. Veit Sto: Darbringung im Tempel.');
   });
 });

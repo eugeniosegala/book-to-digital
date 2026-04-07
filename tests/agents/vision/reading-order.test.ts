@@ -225,6 +225,46 @@ describe('reorderBlocks', () => {
     expect(result.every((b) => b.type !== BlockType.TEXT)).toBe(true);
   });
 
+  it('removes a nearby duplicate caption even when OCR junk appears first', async () => {
+    const blocks = [
+      makeBlock(BlockType.FIGURE, '', 0.05, 0.08),
+      makeBlock(BlockType.FIGURE_CAPTION, 'Abb. 3. Allianzwappen Fugger vom Reh und Erhart aus dem Geheimen Ehrenbuch der Fugger. Munchen, Bayerische Staatsbibliothek', 0.05, 0.08),
+      makeBlock(BlockType.TEXT, 'Sherminus gera Celichez Done Burger vird cot Rixfinez hat etteche Fundez Edid) in celeche Therminms fuggers Seltche', 0.62, 0.08),
+      makeBlock(BlockType.TEXT, 'Abb. 3. Allianzwappen Fugger vom Reh und Erhart aus dem Geheimen Ehrenbuch der Fugger. Munchen, Bayerische Staatsbibliothek', 0.74, 0.08),
+      makeBlock(BlockType.TEXT, 'deren Professionen sowie auch bei ihren Ehepartnern ablesbar.', 0.84, 0.08),
+    ];
+
+    mockFetch.mockResolvedValueOnce(
+      okResponse(JSON.stringify({ order: [0, 1, 2, 3, 4] })),
+    );
+
+    const result = await reorderBlocks('base64img', blocks, 'test-key');
+
+    expect(result).toHaveLength(4);
+    expect(result[2].text).toContain('Sherminus gera');
+    expect(result.find((b) => b.type === BlockType.TEXT && b.text.startsWith('Abb. 3. Allianzwappen'))).toBeUndefined();
+    expect(result[3].text).toBe('deren Professionen sowie auch bei ihren Ehepartnern ablesbar.');
+  });
+
+  it('removes a trailing caption fragment repeated as a nearby TEXT block', async () => {
+    const blocks = [
+      makeBlock(BlockType.FIGURE, '', 0.05, 0.55),
+      makeBlock(BlockType.FIGURE_CAPTION, 'Abb. 2. Hans Beierlein: Kreuzaltar. Murau, St. Matthäus', 0.05, 0.55),
+      makeBlock(BlockType.TEXT, 'Murau, St. Matthäus', 0.74, 0.05),
+      makeBlock(BlockType.TEXT, 'Weiterer Fließtext beginnt hier.', 0.84, 0.05),
+    ];
+
+    mockFetch.mockResolvedValueOnce(
+      okResponse(JSON.stringify({ order: [0, 1, 2, 3] })),
+    );
+
+    const result = await reorderBlocks('base64img', blocks, 'test-key');
+
+    expect(result).toHaveLength(3);
+    expect(result.find((b) => b.type === BlockType.TEXT && b.text === 'Murau, St. Matthäus')).toBeUndefined();
+    expect(result[2].text).toBe('Weiterer Fließtext beginnt hier.');
+  });
+
   it('sends block summaries with correct schema name', async () => {
     const blocks = [
       makeBlock(BlockType.TITLE, 'A title here', 0.02, 0.05),

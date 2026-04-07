@@ -88,14 +88,20 @@ const snapCaptionsToFigures = (blocks: ContentBlock[]): ContentBlock[] => {
 // ── Post-reorder fix: remove TEXT blocks that duplicate a caption ────
 //
 // Textract often picks up caption text twice: once as FIGURE_CAPTION (from
-// vision) and again as a TEXT block (from OCR). After snapping captions to
-// figures, any TEXT block immediately following a FIGURE_CAPTION is checked:
+// vision) and again as one or more nearby TEXT blocks (from OCR). After
+// snapping captions to figures, the next few consecutive TEXT blocks after a
+// FIGURE_CAPTION are checked:
 //   1. Substring match — if the TEXT content appears verbatim inside the
 //      caption, it's a duplicate fragment (e.g. OCR read the tail end of a
 //      long caption as a separate block). Removed regardless of length.
 //   2. Dice coefficient — for near-matches where OCR introduced minor
 //      differences (typos, missing characters). Compares character bigrams
 //      and removes if overlap >= 70%.
+//
+// The scan stays local to avoid deleting valid prose elsewhere on the page
+// that happens to repeat caption terms.
+
+const CAPTION_DUPLICATE_LOOKAHEAD_TEXT_BLOCKS = 3;
 
 const normalize = (text: string) => text.replace(/\s+/g, ' ').trim().toLowerCase();
 
@@ -119,13 +125,34 @@ const isDuplicateOfCaption = (captionText: string, textContent: string): boolean
   return dice >= 0.7;
 };
 
-const deduplicateCaptionText = (blocks: ContentBlock[]): ContentBlock[] =>
-  blocks.filter((block, i) => {
-    if (i === 0 || block.type !== BlockType.TEXT) return true;
-    const prev = blocks[i - 1];
-    if (prev.type !== BlockType.FIGURE_CAPTION) return true;
-    return !isDuplicateOfCaption(prev.text, block.text);
-  });
+const deduplicateCaptionText = (blocks: ContentBlock[]): ContentBlock[] => {
+  const result: ContentBlock[] = [];
+
+  for (let i = 0; i < blocks.length; i++) {
+    const block = blocks[i];
+    result.push(block);
+
+    if (block.type !== BlockType.FIGURE_CAPTION) continue;
+
+    let j = i + 1;
+    let textChecks = 0;
+
+    while (j < blocks.length && textChecks < CAPTION_DUPLICATE_LOOKAHEAD_TEXT_BLOCKS) {
+      const next = blocks[j];
+      if (next.type !== BlockType.TEXT) break;
+
+      textChecks++;
+      if (!isDuplicateOfCaption(block.text, next.text)) {
+        result.push(next);
+      }
+      j++;
+    }
+
+    i = j - 1;
+  }
+
+  return result;
+};
 
 // ── Public API ───────────────────────────────────────────────────────
 

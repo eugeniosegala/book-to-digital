@@ -6,6 +6,7 @@ import { readImage } from './utils/image.js';
 import { analyzePageImage } from './clients/textract.js';
 import { parseLayoutBlocks } from './agents/ocr/layout-parser.js';
 import { analyzePageVision } from './agents/vision/page-enrichment.js';
+import { normalizePageOrientation } from './agents/vision/orientation.js';
 import { reorderBlocks } from './agents/vision/reading-order.js';
 import { processWithConcurrency } from './utils/concurrency.js';
 import { writeDocument } from './agents/document/docx-builder.js';
@@ -43,9 +44,17 @@ const processPage = async (
   const errors: string[] = [];
 
   try {
-    const { buffer, width, height } = await readImage(filePath);
+    const rawImage = await readImage(filePath);
+    const { buffer, width, height } = await normalizePageOrientation(rawImage, filePath, apiKey);
 
     const label = `Page ${pageNumber}`;
+    const orientationCorrected = buffer !== rawImage.buffer
+      || width !== rawImage.width
+      || height !== rawImage.height;
+    if (orientationCorrected) {
+      log.warn(`${label}: corrected page orientation via vision fallback`);
+    }
+
     let contentBlocks: ProcessedPage['contentBlocks'];
     let bookPageNumber: string | undefined;
     try {
@@ -88,7 +97,7 @@ const processPage = async (
       pageNumber,
       filePath,
       contentBlocks: [],
-      errors: [`Failed to read image: ${toErrorMessage(err)}`],
+      errors: [`Failed to prepare image: ${toErrorMessage(err)}`],
     };
   }
 };

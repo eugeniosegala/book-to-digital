@@ -7,6 +7,7 @@ import {
 } from 'docx';
 import { MAX_IMAGE_WIDTH_PTS } from '../../config.js';
 import { BlockType, type ContentBlock } from '../../types.js';
+import { sanitizeDocxText } from './text-sanitizer.js';
 
 const scaledDimensions = (
   width: number,
@@ -24,7 +25,7 @@ export const contentBlockToDocxElements = (block: ContentBlock): Paragraph[] => 
       return [
         new Paragraph({
           heading: HeadingLevel.TITLE,
-          children: [new TextRun({ text: block.text, bold: true, size: 32 })],
+          children: [new TextRun({ text: sanitizeDocxText(block.text), bold: true, size: 32 })],
           spacing: { after: 200 },
         }),
       ];
@@ -33,7 +34,7 @@ export const contentBlockToDocxElements = (block: ContentBlock): Paragraph[] => 
       return [
         new Paragraph({
           heading: HeadingLevel.HEADING_1,
-          children: [new TextRun({ text: block.text, bold: true, size: 26 })],
+          children: [new TextRun({ text: sanitizeDocxText(block.text), bold: true, size: 26 })],
           spacing: { before: 300, after: 150 },
         }),
       ];
@@ -41,13 +42,13 @@ export const contentBlockToDocxElements = (block: ContentBlock): Paragraph[] => 
     case BlockType.TEXT:
       return [
         new Paragraph({
-          children: [new TextRun({ text: block.text.replace(/\n/g, ' '), size: 22 })],
+          children: [new TextRun({ text: sanitizeDocxText(block.text).replace(/\n/g, ' '), size: 22 })],
           spacing: { after: 120 },
         }),
       ];
 
     case BlockType.LIST:
-      return block.text.split('\n').map(
+      return sanitizeDocxText(block.text).split('\n').map(
         (line) =>
           new Paragraph({
             children: [new TextRun({ text: line, size: 22 })],
@@ -93,14 +94,14 @@ export const contentBlockToDocxElements = (block: ContentBlock): Paragraph[] => 
         new Paragraph({
           alignment: AlignmentType.CENTER,
           children: [
-            new TextRun({ text: block.text, italics: true, size: 18, color: '555555' }),
+            new TextRun({ text: sanitizeDocxText(block.text), italics: true, size: 18, color: '555555' }),
           ],
           spacing: { after: 200 },
         }),
       ];
 
     case BlockType.TABLE:
-      return block.text.split('\n').map(
+      return sanitizeDocxText(block.text).split('\n').map(
         (line) =>
           new Paragraph({
             children: [new TextRun({ text: line, font: 'Courier New', size: 20 })],

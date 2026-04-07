@@ -1,12 +1,23 @@
 import { describe, it, expect } from 'vitest';
 import path from 'node:path';
 import sharp from 'sharp';
-import { readImage, cropRegion, isImageFile } from '../../src/utils/image.js';
+import { readImage, cropRegion, isImageFile, rotateImage } from '../../src/utils/image.js';
 
-const createTestImage = async (width: number, height: number): Promise<Buffer> =>
-  sharp({ create: { width, height, channels: 3, background: { r: 255, g: 0, b: 0 } } })
-    .jpeg()
-    .toBuffer();
+const createTestImage = async (
+  width: number,
+  height: number,
+  orientation?: number,
+): Promise<Buffer> => {
+  let image = sharp({
+    create: { width, height, channels: 3, background: { r: 255, g: 0, b: 0 } },
+  }).jpeg();
+
+  if (orientation) {
+    image = image.withMetadata({ orientation });
+  }
+
+  return image.toBuffer();
+};
 
 describe('isImageFile', () => {
   it('accepts common image extensions', () => {
@@ -45,8 +56,32 @@ describe('readImage', () => {
     await fs.unlink(tmpPath);
   });
 
+  it('applies EXIF auto-rotation before returning dimensions', async () => {
+    const tmpPath = path.join(import.meta.dirname, '../fixtures/test-image-exif.jpg');
+    const imgBuffer = await createTestImage(300, 200, 6);
+    const fs = await import('node:fs/promises');
+    await fs.writeFile(tmpPath, imgBuffer);
+
+    const result = await readImage(tmpPath);
+    expect(result.width).toBe(200);
+    expect(result.height).toBe(300);
+
+    await fs.unlink(tmpPath);
+  });
+
   it('throws for non-existent file', async () => {
     await expect(readImage('/nonexistent/file.jpg')).rejects.toThrow();
+  });
+});
+
+describe('rotateImage', () => {
+  it('rotates image dimensions by 90 degrees', async () => {
+    const imgBuffer = await createTestImage(300, 200);
+    const rotated = await rotateImage(imgBuffer, 90);
+
+    expect(rotated.width).toBe(200);
+    expect(rotated.height).toBe(300);
+    expect(rotated.buffer.length).toBeGreaterThan(0);
   });
 });
 
