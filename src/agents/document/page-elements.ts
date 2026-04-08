@@ -5,8 +5,13 @@ import {
   HeadingLevel,
   AlignmentType,
 } from "docx";
-import { MAX_IMAGE_WIDTH_PTS } from "../../config.js";
-import { BlockType, type ContentBlock } from "../../types.js";
+import {
+  DOCX_COLORS,
+  DOCX_FONT_SIZES,
+  DOCX_SPACING,
+  MAX_IMAGE_WIDTH_PTS,
+} from "../../config/document.js";
+import { BlockType, type ContentBlock } from "../../types/content.js";
 import { sanitizeDocxText } from "./text-sanitizer.js";
 
 const scaledDimensions = (
@@ -31,10 +36,10 @@ export const contentBlockToDocxElements = (
             new TextRun({
               text: sanitizeDocxText(block.text),
               bold: true,
-              size: 32,
+              size: DOCX_FONT_SIZES.title,
             }),
           ],
-          spacing: { after: 200 },
+          spacing: { after: DOCX_SPACING.titleAfter },
         }),
       ];
 
@@ -46,10 +51,13 @@ export const contentBlockToDocxElements = (
             new TextRun({
               text: sanitizeDocxText(block.text),
               bold: true,
-              size: 26,
+              size: DOCX_FONT_SIZES.sectionHeader,
             }),
           ],
-          spacing: { before: 300, after: 150 },
+          spacing: {
+            before: DOCX_SPACING.sectionHeaderBefore,
+            after: DOCX_SPACING.sectionHeaderAfter,
+          },
         }),
       ];
 
@@ -59,10 +67,10 @@ export const contentBlockToDocxElements = (
           children: [
             new TextRun({
               text: sanitizeDocxText(block.text).replace(/\n/g, " "),
-              size: 22,
+              size: DOCX_FONT_SIZES.body,
             }),
           ],
-          spacing: { after: 120 },
+          spacing: { after: DOCX_SPACING.paragraphAfter },
         }),
       ];
 
@@ -72,9 +80,9 @@ export const contentBlockToDocxElements = (
         .map(
           (line) =>
             new Paragraph({
-              children: [new TextRun({ text: line, size: 22 })],
+              children: [new TextRun({ text: line, size: DOCX_FONT_SIZES.body })],
               bullet: { level: 0 },
-              spacing: { after: 60 },
+              spacing: { after: DOCX_SPACING.listAfter },
             }),
         );
 
@@ -86,7 +94,7 @@ export const contentBlockToDocxElements = (
               new TextRun({
                 text: "[Figure: image not available]",
                 italics: true,
-                color: "888888",
+                color: DOCX_COLORS.missingFigure,
               }),
             ],
           }),
@@ -109,7 +117,10 @@ export const contentBlockToDocxElements = (
               type: "jpg",
             }),
           ],
-          spacing: { before: 200, after: 100 },
+          spacing: {
+            before: DOCX_SPACING.figureBefore,
+            after: DOCX_SPACING.figureAfter,
+          },
         }),
       ];
     }
@@ -122,11 +133,11 @@ export const contentBlockToDocxElements = (
             new TextRun({
               text: sanitizeDocxText(block.text),
               italics: true,
-              size: 18,
-              color: "555555",
+              size: DOCX_FONT_SIZES.figureCaption,
+              color: DOCX_COLORS.figureCaption,
             }),
           ],
-          spacing: { after: 200 },
+          spacing: { after: DOCX_SPACING.figureCaptionAfter },
         }),
       ];
 
@@ -137,9 +148,13 @@ export const contentBlockToDocxElements = (
           (line) =>
             new Paragraph({
               children: [
-                new TextRun({ text: line, font: "Courier New", size: 20 }),
+                new TextRun({
+                  text: line,
+                  font: "Courier New",
+                  size: DOCX_FONT_SIZES.table,
+                }),
               ],
-              spacing: { after: 40 },
+              spacing: { after: DOCX_SPACING.tableAfter },
             }),
         );
 

@@ -3,7 +3,8 @@ import {
   OPENROUTER_MODEL,
   OPENROUTER_MAX_RETRIES,
   OPENROUTER_RETRY_DELAYS,
-} from "../config.js";
+} from "../config/clients.js";
+import { toErrorMessage } from "../utils/error.js";
 import * as log from "../utils/logger.js";
 
 interface ChatMessage {
@@ -35,12 +36,23 @@ class OpenRouterHttpError extends Error {
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
-const sanitizeJson = (text: string): string =>
-  text
-    .replace(/\/\/[^\n]*/g, "") // single-line comments
-    .replace(/\/\*[\s\S]*?\*\//g, "") // multi-line comments
-    .replace(/(\d)\s*\n\s*(\d)/g, "$1,\n$2") // missing commas between numbers
-    .replace(/,\s*([\]}])/g, "$1"); // trailing commas
+const JSON_CODE_BLOCK_REGEX = /^\s*```(?:json)?\s*([\s\S]*?)\s*```\s*$/i;
+
+const unwrapStructuredContent = (content: string): string =>
+  content.match(JSON_CODE_BLOCK_REGEX)?.[1] ?? content;
+
+const parseStructuredContent = <T>(
+  schemaName: string,
+  content: string,
+): T => {
+  try {
+    return JSON.parse(unwrapStructuredContent(content).trim()) as T;
+  } catch (err) {
+    throw new Error(
+      `${schemaName}: Invalid JSON response from OpenRouter: ${toErrorMessage(err)}`,
+    );
+  }
+};
 
 export const callOpenRouter = async <T>(
   options: CompletionOptions,
@@ -101,7 +113,7 @@ export const callOpenRouter = async <T>(
       }
 
       return {
-        data: JSON.parse(sanitizeJson(content)) as T,
+        data: parseStructuredContent<T>(options.schemaName, content),
         finishReason: choice?.finish_reason,
       };
     } catch (err) {

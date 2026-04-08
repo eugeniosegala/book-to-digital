@@ -2,7 +2,7 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { orderBy } from "natural-orderby";
 import { isImageFile } from "../../utils/image.js";
-import type { SortOrder } from "../../types.js";
+import type { SortOrder } from "../../types/pipeline.js";
 
 const sortByName = (files: string[]): string[] => orderBy(files);
 

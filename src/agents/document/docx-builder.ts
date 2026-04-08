@@ -8,16 +8,29 @@ import {
 } from "docx";
 import fs from "node:fs/promises";
 import path from "node:path";
-import type { ProcessedPage } from "../../types.js";
+import {
+  DOCX_COLORS,
+  DOCX_FONT_SIZES,
+  DOCX_SPACING,
+} from "../../config/document.js";
+import type { ProcessedPage } from "../../types/content.js";
 import { contentBlockToDocxElements } from "./page-elements.js";
 import { sanitizeDocxText } from "./text-sanitizer.js";
 
 const separator = (): Paragraph =>
   new Paragraph({
     border: {
-      bottom: { style: BorderStyle.SINGLE, size: 1, color: "CCCCCC", space: 1 },
+      bottom: {
+        style: BorderStyle.SINGLE,
+        size: 1,
+        color: DOCX_COLORS.pageSeparator,
+        space: 1,
+      },
     },
-    spacing: { before: 300, after: 300 },
+    spacing: {
+      before: DOCX_SPACING.separatorBefore,
+      after: DOCX_SPACING.separatorAfter,
+    },
   });
 
 const buildPageSection = (
@@ -35,11 +48,11 @@ const buildPageSection = (
             `— Page ${page.bookPageNumber ?? page.pageNumber} · ${path.basename(page.filePath)} —`,
           ),
           italics: true,
-          size: 16,
-          color: "999999",
+          size: DOCX_FONT_SIZES.pageLabel,
+          color: DOCX_COLORS.pageLabel,
         }),
       ],
-      spacing: { after: 200 },
+      spacing: { after: DOCX_SPACING.pageLabelAfter },
     }),
   );
 
@@ -56,8 +69,8 @@ const buildPageSection = (
           new TextRun({
             text: sanitizeDocxText(`[Error: ${err}]`),
             italics: true,
-            color: "CC0000",
-            size: 18,
+            color: DOCX_COLORS.error,
+            size: DOCX_FONT_SIZES.error,
           }),
         ],
       }),

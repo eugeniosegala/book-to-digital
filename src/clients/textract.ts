@@ -3,7 +3,7 @@ import {
   AnalyzeDocumentCommand,
   type AnalyzeDocumentResponse,
 } from "@aws-sdk/client-textract";
-import { TEXTRACT_MAX_ATTEMPTS } from "../config.js";
+import { TEXTRACT_MAX_ATTEMPTS } from "../config/clients.js";
 
 const clients = new Map<string, TextractClient>();
 

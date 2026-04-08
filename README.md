@@ -2,7 +2,8 @@
 
 Convert photos of physical books into clean, structured digital Word documents — preserving layout, images, and meaning.
 
-This repository is designed to help researchers turn physical books into digital documents, and optionally translated versions, so the material is easier to use in their research workflows.
+This repository is designed to help researchers turn physical books into digital documents, and optionally translated
+versions, so the material is easier to use in their research workflows.
 
 <p align="center">
   <img
@@ -21,16 +22,20 @@ This repository is designed to help researchers turn physical books into digital
 1. Scan the input folder for page images and sort them by filename or file date.
 2. Process pages with bounded concurrency. Each image is loaded and auto-rotated from EXIF metadata before analysis.
 3. For each page, run **AWS Textract** and the **Vision LLM** in parallel.
-   - **Textract** extracts layout-aware text blocks such as titles, section headers, text, lists, and tables.
-   - **Vision LLM** detects printed page numbers plus figures, figure bounding boxes, and captions.
+    - **Textract** extracts layout-aware text blocks such as titles, section headers, text, lists, and tables.
+    - **Vision LLM** detects printed page numbers plus figures, figure bounding boxes, and captions.
 4. Merge the OCR and vision results into a single page structure.
-   - Textract figure anchors are replaced with cropped figure images from the source page.
-   - Vision captions are attached to their figures.
-   - A second vision pass reorders blocks for correct reading order on complex or multi-column pages and removes caption duplicates.
-5. Build the primary Word document from the processed pages, including page markers, text, tables, figures, captions, and inline error placeholders for any failed pages.
-6. If translation is enabled, clone the processed pages, repair cross-page hyphen splits, translate translatable blocks in batches with neighboring-page context, and write a second `.docx` alongside the original.
+    - Textract figure anchors are replaced with cropped figure images from the source page.
+    - Vision captions are attached to their figures.
+    - A second vision pass reorders blocks for correct reading order on complex or multi-column pages and removes
+      caption duplicates.
+5. Build the primary Word document from the processed pages, including page markers, text, tables, figures, captions,
+   and inline error placeholders for any failed pages.
+6. If translation is enabled, clone the processed pages, repair cross-page hyphen splits, translate translatable blocks
+   in batches with neighboring-page context, and write a second `.docx` alongside the original.
 
-If `--verbose` is enabled, the pipeline also writes per-page debug JSON files under `debug/original` and `debug/translated`.
+If `--verbose` is enabled, the pipeline also writes per-page debug JSON files under `debug/original` and
+`debug/translated`.
 
 ## Pipeline
 
@@ -39,34 +44,33 @@ flowchart TD
     A["📂 Folder of page photos"] --> B["Scan images and sort by name or date"]
     B --> C["Process pages with bounded concurrency"]
     C --> D["Load image and auto-rotate from EXIF"]
-
     D --> E["Layout OCR
     AWS Textract"]
-    D --> F["Page number + figure analysis
-    Vision LLM via OpenRouter"]
+D --> F["Page number + figure analysis
+Vision LLM via OpenRouter"]
 
-    E --> G["Merge OCR blocks with vision results"]
-    F --> G
+E --> G["Merge OCR blocks with vision results"]
+F --> G
 
-    G --> H["Crop figures and attach captions"]
-    H --> I["Fix reading order
-    and deduplicate caption text"]
-    I --> J["Structured processed pages"]
+G --> H["Crop figures and attach captions"]
+H --> I["Fix reading order
+and deduplicate caption text"]
+I --> J["Structured processed pages"]
 
-    J --> K["Build original Word document"]
-    K --> L["📄 output.docx"]
+J --> K["Build original Word document"]
+K --> L["📄 output.docx"]
 
-    J --> M{"Translate?"}
-    M -- Yes --> N["Clone pages and repair
-    cross-page hyphen splits"]
-    N --> O["Translate text blocks in batches
-    with neighboring-page context"]
-    O --> P["Build translated Word document"]
-    P --> Q["📄 output.<lang>.docx"]
+J --> M{"Translate?"}
+M -- Yes --> N["Clone pages and repair
+cross-page hyphen splits"]
+N --> O["Translate text blocks in batches
+with neighboring-page context"]
+O --> P["Build translated Word document"]
+P --> Q["📄 output.<lang>.docx"]
 
-    M -- No --> R(("Done"))
-    L --> R
-    Q --> R
+M -- No --> R(("Done"))
+L --> R
+Q --> R
 
 ```
 
@@ -93,7 +97,7 @@ npx tsx src/cli.ts <input-folder> [options]
 ### Options
 
 | Option                       | Description                                  | Default                         |
-| ---------------------------- | -------------------------------------------- | ------------------------------- |
+|------------------------------|----------------------------------------------|---------------------------------|
 | `-o, --output <path>`        | Output .docx file path                       | `./output.docx`                 |
 | `-c, --concurrency <n>`      | Max pages processed in parallel              | `5`                             |
 | `-r, --region <region>`      | AWS region                                   | `AWS_REGION` env or `us-east-1` |

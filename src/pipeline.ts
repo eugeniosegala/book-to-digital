@@ -1,19 +1,19 @@
 import fs from "node:fs/promises";
 import path from "node:path";
-import type { PipelineConfig, ProcessedPage, VisionAnalysis } from "./types.js";
+import type { PipelineConfig, ProcessedPage } from "./types.js";
+import type { VisionAnalysis } from "./types/vision.js";
 import { scanForImages } from "./agents/scanner/file-scanner.js";
-import { readImage } from "./utils/image.js";
+import { readImage, toVisionImageSource } from "./utils/image.js";
 import { analyzePageImage } from "./clients/textract.js";
 import { parseLayoutBlocks } from "./agents/ocr/layout-parser.js";
-import { analyzePageVision } from "./agents/vision/page-enrichment.js";
+import { analyzePageVision } from "./agents/vision/page-analyzer.js";
 import { normalizePageOrientation } from "./agents/vision/orientation.js";
 import { reorderBlocks } from "./agents/vision/reading-order.js";
 import { processWithConcurrency } from "./utils/concurrency.js";
 import { writeDocument } from "./agents/document/docx-builder.js";
-import {
-  translatePages,
-  resolveLanguage,
-} from "./agents/translation/translator.js";
+import { translatePages } from "./agents/translation/translator.js";
+import { resolveLanguage } from "./agents/translation/language.js";
+import { resolveRuntimeDependencies } from "./config/runtime.js";
 import { toErrorMessage } from "./utils/error.js";
 import * as log from "./utils/logger.js";
 
@@ -38,6 +38,19 @@ const writeDebugPage = async (dir: string, page: ProcessedPage) => {
   log.debug(`Debug: ${debugPath}`);
 };
 
+const buildTranslatedOutputPath = (
+  outputPath: string,
+  language: string,
+): string => {
+  const ext = path.extname(outputPath);
+  if (!ext) {
+    return `${outputPath}.${language}`;
+  }
+
+  const base = outputPath.slice(0, -ext.length);
+  return `${base}.${language}${ext}`;
+};
+
 const processPage = async (
   filePath: string,
   pageNumber: number,
@@ -48,31 +61,37 @@ const processPage = async (
 
   try {
     const rawImage = await readImage(filePath);
-    const { buffer, width, height } = await normalizePageOrientation(
+    const normalizedImage = await normalizePageOrientation(
       rawImage,
       filePath,
       apiKey,
     );
+    const { buffer, width, height } = normalizedImage;
 
     const label = `Page ${pageNumber}`;
     const orientationCorrected =
       buffer !== rawImage.buffer ||
       width !== rawImage.width ||
       height !== rawImage.height;
+
     if (orientationCorrected) {
       log.warn(`${label}: corrected page orientation via vision fallback`);
     }
 
     let contentBlocks: ProcessedPage["contentBlocks"];
     let bookPageNumber: string | undefined;
+
     try {
       // Run Textract and vision LLM in parallel
       log.debug(`${label}: Textract + Vision started`);
+
       const textractPromise = analyzePageImage(buffer, region);
-      const visionPromise = analyzePageVision(buffer, apiKey).catch((err) => {
-        log.warn(`${label}: Vision failed — ${toErrorMessage(err)}`);
-        return { pageNumber: null, figures: [] } as VisionAnalysis;
-      });
+      const visionPromise = analyzePageVision(normalizedImage, apiKey).catch(
+        (err) => {
+          log.warn(`${label}: Vision failed — ${toErrorMessage(err)}`);
+          return { pageNumber: null, figures: [] } as VisionAnalysis;
+        },
+      );
 
       const [textractResponse, visionResult] = await Promise.all([
         textractPromise,
@@ -91,15 +110,15 @@ const processPage = async (
       );
       bookPageNumber = result.bookPageNumber;
 
-      const base64 = buffer.toString("base64");
       contentBlocks = await reorderBlocks(
-        base64,
+        toVisionImageSource(normalizedImage),
         result.contentBlocks,
         apiKey,
       ).catch((err) => {
         log.warn(`${label}: Reading order failed — ${toErrorMessage(err)}`);
         return result.contentBlocks;
       });
+
       log.debug(`${label}: done (${contentBlocks.length} blocks)`);
     } catch (err) {
       errors.push(`OCR failed: ${toErrorMessage(err)}`);
@@ -136,12 +155,7 @@ export const processBook = async (config: PipelineConfig): Promise<void> => {
   const outputDir = path.dirname(path.resolve(config.outputPath));
   await fs.mkdir(outputDir, { recursive: true });
 
-  const openRouterApiKey = process.env.OPENROUTER_API_KEY;
-  if (!openRouterApiKey) {
-    throw new Error(
-      "OPENROUTER_API_KEY is required — set it in .env or your environment",
-    );
-  }
+  const { openRouterApiKey } = resolveRuntimeDependencies();
 
   // Scan for images
   log.info(
@@ -195,9 +209,10 @@ export const processBook = async (config: PipelineConfig): Promise<void> => {
       concurrency: config.concurrency,
     });
 
-    const ext = path.extname(config.outputPath);
-    const base = config.outputPath.slice(0, -ext.length);
-    const translatedPath = `${base}.${config.translateLanguage}${ext}`;
+    const translatedPath = buildTranslatedOutputPath(
+      config.outputPath,
+      config.translateLanguage,
+    );
 
     if (log.isVerbose()) {
       await Promise.all(

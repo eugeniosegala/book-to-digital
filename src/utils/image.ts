@@ -1,14 +1,34 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import sharp from "sharp";
-import { CROP_PADDING, JPEG_OUTPUT_QUALITY } from "../config.js";
-import type { BoundingBox } from "../types.js";
+import { CROP_PADDING, JPEG_OUTPUT_QUALITY } from "../config/image.js";
+import type { BoundingBox } from "../types/content.js";
+import type {
+  ImageData,
+  ImageMimeType,
+  VisionImageSource,
+} from "../types/image.js";
 
-export interface ImageData {
-  buffer: Buffer;
-  width: number;
-  height: number;
-}
+export type {
+  ImageData,
+  ImageDimensions,
+  ImageMimeType,
+  VisionImageSource,
+} from "../types/image.js";
+
+const SHARP_FORMAT_TO_MIME_TYPE: Partial<Record<string, ImageMimeType>> = {
+  jpeg: "image/jpeg",
+  jpg: "image/jpeg",
+  png: "image/png",
+  webp: "image/webp",
+  tif: "image/tiff",
+  tiff: "image/tiff",
+};
+
+const toMimeType = (format?: string): ImageMimeType => {
+  const resolved = format ? SHARP_FORMAT_TO_MIME_TYPE[format] : undefined;
+  return resolved ?? "image/jpeg";
+};
 
 const toImageData = async (
   pipeline: sharp.Sharp,
@@ -20,7 +40,12 @@ const toImageData = async (
     throw new Error(`Could not read dimensions for ${sourceLabel}`);
   }
 
-  return { buffer: data, width: info.width, height: info.height };
+  return {
+    buffer: data,
+    width: info.width,
+    height: info.height,
+    mimeType: toMimeType(info.format),
+  };
 };
 
 export const readImage = async (filePath: string): Promise<ImageData> => {
@@ -64,13 +89,37 @@ export const cropRegion = async (
     throw new Error(`Invalid crop region: ${JSON.stringify(box)}`);
   }
 
-  const cropped = await sharp(imageBuffer)
-    .extract({ left, top, width, height })
-    .jpeg({ quality: JPEG_OUTPUT_QUALITY })
-    .toBuffer();
-
-  return { buffer: cropped, width, height };
+  return toImageData(
+    sharp(imageBuffer)
+      .extract({ left, top, width, height })
+      .jpeg({ quality: JPEG_OUTPUT_QUALITY }),
+    "crop region",
+  );
 };
+
+export const cropImageCenter = async (
+  image: Pick<ImageData, "buffer" | "width" | "height">,
+  marginRatio: number,
+): Promise<ImageData> => {
+  const left = Math.round(image.width * marginRatio);
+  const top = Math.round(image.height * marginRatio);
+  const width = Math.round(image.width * (1 - 2 * marginRatio));
+  const height = Math.round(image.height * (1 - 2 * marginRatio));
+
+  return toImageData(
+    sharp(image.buffer)
+      .extract({ left, top, width, height })
+      .jpeg({ quality: JPEG_OUTPUT_QUALITY }),
+    "center crop",
+  );
+};
+
+export const toVisionImageSource = (
+  image: Pick<ImageData, "buffer" | "mimeType">,
+): VisionImageSource => ({
+  base64: image.buffer.toString("base64"),
+  mimeType: image.mimeType,
+});
 
 const IMAGE_EXTENSIONS = new Set([
   ".jpg",

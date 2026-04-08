@@ -1,4 +1,5 @@
 import { callVisionLLM } from "../../clients/vision-llm.js";
+import type { VisionImageSource } from "../../types/image.js";
 
 const PAGE_NUMBER_PROMPT = `You are analyzing a photographed book page. Your ONLY task is to identify the official printed page number.
 
@@ -26,11 +27,11 @@ const PAGE_NUMBER_SCHEMA = {
 };
 
 export const detectPageNumber = async (
-  base64Image: string,
+  image: VisionImageSource,
   apiKey: string,
 ): Promise<string | null> => {
   const result = await callVisionLLM<{ pageNumber: string | null }>(
-    base64Image,
+    image,
     apiKey,
     PAGE_NUMBER_PROMPT,
     "What is the printed page number on this book page?",

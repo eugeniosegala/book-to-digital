@@ -1,12 +1,40 @@
 #!/usr/bin/env node
 
 import "dotenv/config";
-import { Command } from "commander";
-import { DEFAULT_CONCURRENCY } from "./config.js";
+import { Command, InvalidArgumentError } from "commander";
+import { DEFAULT_CONCURRENCY } from "./config/pipeline.js";
 import { processBook } from "./pipeline.js";
-import type { SortOrder } from "./types.js";
+import type { SortOrder } from "./types/pipeline.js";
 import { toErrorMessage } from "./utils/error.js";
 import * as log from "./utils/logger.js";
+
+interface CliOptions {
+  output: string;
+  concurrency: number;
+  region: string;
+  sort: SortOrder;
+  maxPages?: number;
+  translate?: string;
+  verbose: boolean;
+}
+
+const parsePositiveInteger = (value: string): number => {
+  const parsed = Number.parseInt(value, 10);
+
+  if (!Number.isInteger(parsed) || parsed <= 0) {
+    throw new InvalidArgumentError("must be a positive integer");
+  }
+
+  return parsed;
+};
+
+const parseSortOrder = (value: string): SortOrder => {
+  if (value === "name" || value === "date") {
+    return value;
+  }
+
+  throw new InvalidArgumentError("must be one of: name, date");
+};
 
 const program = new Command();
 
@@ -20,44 +48,42 @@ program
   .option("-o, --output <path>", "Output .docx file path", "./output.docx")
   .option(
     "-c, --concurrency <n>",
-    "Max concurrent Textract calls",
-    String(DEFAULT_CONCURRENCY),
+    "Max concurrent page-processing tasks",
+    parsePositiveInteger,
+    DEFAULT_CONCURRENCY,
   )
   .option(
     "-r, --region <region>",
     "AWS region",
     process.env.AWS_REGION ?? "us-east-1",
   )
-  .option("-s, --sort <order>", "Sort order: name or date", "name")
-  .option("-n, --max-pages <n>", "Max number of pages to process (for testing)")
+  .option("-s, --sort <order>", "Sort order: name or date", parseSortOrder, "name")
+  .option(
+    "-n, --max-pages <n>",
+    "Max number of pages to process (for testing)",
+    parsePositiveInteger,
+  )
   .option(
     "-t, --translate <language>",
     "Translate to target language (e.g., en, English)",
   )
   .option("-v, --verbose", "Enable verbose logging", false)
-  .action(
-    async (
-      inputDir: string,
-      opts: Record<string, string | boolean | undefined>,
-    ) => {
-      try {
-        await processBook({
-          inputDir,
-          outputPath: opts.output as string,
-          concurrency: parseInt(opts.concurrency as string, 10),
-          awsRegion: opts.region as string,
-          sortOrder: (opts.sort as SortOrder) ?? "name",
-          maxPages: opts.maxPages
-            ? parseInt(opts.maxPages as string, 10)
-            : undefined,
-          translateLanguage: opts.translate as string | undefined,
-          verbose: opts.verbose as boolean,
-        });
-      } catch (err) {
-        log.error(toErrorMessage(err));
-        process.exit(1);
-      }
-    },
-  );
+  .action(async (inputDir: string, opts: CliOptions) => {
+    try {
+      await processBook({
+        inputDir,
+        outputPath: opts.output,
+        concurrency: opts.concurrency,
+        awsRegion: opts.region,
+        sortOrder: opts.sort,
+        maxPages: opts.maxPages,
+        translateLanguage: opts.translate,
+        verbose: opts.verbose,
+      });
+    } catch (err) {
+      log.error(toErrorMessage(err));
+      process.exit(1);
+    }
+  });
 
 program.parse();

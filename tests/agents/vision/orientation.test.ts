@@ -1,26 +1,13 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { describe, it, expect } from "vitest";
 import sharp from "sharp";
 import { normalizePageOrientation } from "../../../src/agents/vision/orientation.js";
 import type { ImageData } from "../../../src/utils/image.js";
+import {
+  okJsonSchemaResponse,
+  setupMockFetch,
+} from "../../support/openrouter-mocks.js";
 
-const mockFetch = vi.fn();
-
-beforeEach(() => {
-  vi.stubGlobal("fetch", mockFetch);
-  vi.spyOn(global, "setTimeout").mockImplementation((fn: () => void) => {
-    fn();
-    return 0 as unknown as NodeJS.Timeout;
-  });
-});
-
-afterEach(() => {
-  vi.restoreAllMocks();
-});
-
-const okResponse = (content: string) => ({
-  ok: true,
-  json: async () => ({ choices: [{ message: { content } }] }),
-});
+const mockFetch = setupMockFetch();
 
 const createImageData = async (
   width: number,
@@ -37,14 +24,14 @@ const createImageData = async (
     .jpeg()
     .toBuffer();
 
-  return { buffer, width, height };
+  return { buffer, width, height, mimeType: "image/jpeg" };
 };
 
 describe("normalizePageOrientation", () => {
   it("keeps an upright portrait image unchanged when the LLM returns 0 degrees", async () => {
     const image = await createImageData(200, 300);
     mockFetch.mockResolvedValueOnce(
-      okResponse(JSON.stringify({ rotationDegrees: "0", confidence: 0.97 })),
+      okJsonSchemaResponse({ rotationDegrees: "0", confidence: 0.97 }),
     );
 
     const result = await normalizePageOrientation(
@@ -60,7 +47,7 @@ describe("normalizePageOrientation", () => {
   it("rotates an upside-down portrait image when the LLM confidently returns 180 degrees", async () => {
     const image = await createImageData(200, 300);
     mockFetch.mockResolvedValueOnce(
-      okResponse(JSON.stringify({ rotationDegrees: "180", confidence: 0.98 })),
+      okJsonSchemaResponse({ rotationDegrees: "180", confidence: 0.98 }),
     );
 
     const result = await normalizePageOrientation(
@@ -78,7 +65,7 @@ describe("normalizePageOrientation", () => {
   it("rotates a landscape image when the LLM gives a confident answer", async () => {
     const image = await createImageData(300, 200);
     mockFetch.mockResolvedValueOnce(
-      okResponse(JSON.stringify({ rotationDegrees: "90", confidence: 0.96 })),
+      okJsonSchemaResponse({ rotationDegrees: "90", confidence: 0.96 }),
     );
 
     const result = await normalizePageOrientation(
@@ -99,7 +86,7 @@ describe("normalizePageOrientation", () => {
   it("keeps a portrait image unchanged when the LLM is not confident enough", async () => {
     const image = await createImageData(200, 300);
     mockFetch.mockResolvedValueOnce(
-      okResponse(JSON.stringify({ rotationDegrees: "180", confidence: 0.62 })),
+      okJsonSchemaResponse({ rotationDegrees: "180", confidence: 0.62 }),
     );
 
     const result = await normalizePageOrientation(
@@ -114,7 +101,7 @@ describe("normalizePageOrientation", () => {
   it("throws for a landscape image when the LLM is not confident enough", async () => {
     const image = await createImageData(300, 200);
     mockFetch.mockResolvedValueOnce(
-      okResponse(JSON.stringify({ rotationDegrees: "90", confidence: 0.62 })),
+      okJsonSchemaResponse({ rotationDegrees: "90", confidence: 0.62 }),
     );
 
     await expect(
@@ -125,7 +112,7 @@ describe("normalizePageOrientation", () => {
   it("throws when the suggested rotation does not recover portrait orientation", async () => {
     const image = await createImageData(300, 200);
     mockFetch.mockResolvedValueOnce(
-      okResponse(JSON.stringify({ rotationDegrees: "180", confidence: 0.95 })),
+      okJsonSchemaResponse({ rotationDegrees: "180", confidence: 0.95 }),
     );
 
     await expect(

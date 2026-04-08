@@ -6,6 +6,8 @@ const isValidXmlCodePoint = (codePoint: number): boolean =>
   (codePoint >= 0xe000 && codePoint <= 0xfffd) ||
   (codePoint >= 0x10000 && codePoint <= 0x10ffff);
 
+// docx ultimately serializes to XML, so invalid XML code points must be removed
+// before text is handed to the writer.
 export const sanitizeDocxText = (text: string): string => {
   let result = "";
 

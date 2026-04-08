@@ -1,0 +1,3 @@
+export const DEFAULT_CONCURRENCY = 5;
+export const TRANSLATION_CONTEXT_BLOCKS = 2;
+export const TRANSLATION_BATCH_SIZE = 5;

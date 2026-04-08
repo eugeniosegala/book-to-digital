@@ -1,7 +1,13 @@
-import sharp from "sharp";
-import { FIGURE_CROP_MARGIN, JPEG_OUTPUT_QUALITY } from "../../config.js";
-import type { FigureInfo } from "../../types.js";
+import { FIGURE_CROP_MARGIN } from "../../config/image.js";
+import type { FigureInfo } from "../../types/vision.js";
 import { callVisionLLM } from "../../clients/vision-llm.js";
+import { cropImageCenter, toVisionImageSource } from "../../utils/image.js";
+import type { ImageData } from "../../types/image.js";
+import {
+  clampBoundingBox,
+  hasDegenerateBoundingBox,
+  mapBoundingBoxFromCenteredCrop,
+} from "../../utils/bounding-box.js";
 
 const FIGURES_PROMPT = `You are analyzing a photographed book page. Your ONLY task is to identify images, illustrations, photographs, and drawings on the page.
 
@@ -47,51 +53,32 @@ const FIGURES_SCHEMA = {
 
 // --- Bounding box helpers ---
 
-const hasInvalidBox = (fig: FigureInfo): boolean =>
-  fig.boundingBox.width <= 0 || fig.boundingBox.height <= 0;
+const clampFigures = (figures: FigureInfo[]): FigureInfo[] =>
+  figures.map((figure) => ({
+    ...figure,
+    boundingBox: clampBoundingBox(figure.boundingBox),
+  }));
 
-const clampBoxes = (figures: FigureInfo[]): void => {
-  for (const fig of figures) {
-    const box = fig.boundingBox;
-    box.top = Math.max(0, Math.min(1, box.top));
-    box.left = Math.max(0, Math.min(1, box.left));
-    box.width = Math.max(0, Math.min(1 - box.left, box.width));
-    box.height = Math.max(0, Math.min(1 - box.top, box.height));
-  }
-};
+const hasInvalidBox = (figure: FigureInfo): boolean =>
+  hasDegenerateBoundingBox(figure.boundingBox);
 
-const mapBoxToFullImage = (fig: FigureInfo): void => {
-  const box = fig.boundingBox;
-  const scale = 1 - 2 * FIGURE_CROP_MARGIN;
-  box.left = FIGURE_CROP_MARGIN + box.left * scale;
-  box.top = FIGURE_CROP_MARGIN + box.top * scale;
-  box.width = box.width * scale;
-  box.height = box.height * scale;
-};
-
-const cropImageCenter = async (imageBuffer: Buffer): Promise<Buffer> => {
-  const meta = await sharp(imageBuffer).metadata();
-  const w = meta.width!;
-  const h = meta.height!;
-  const left = Math.round(w * FIGURE_CROP_MARGIN);
-  const top = Math.round(h * FIGURE_CROP_MARGIN);
-  const width = Math.round(w * (1 - 2 * FIGURE_CROP_MARGIN));
-  const height = Math.round(h * (1 - 2 * FIGURE_CROP_MARGIN));
-  return sharp(imageBuffer)
-    .extract({ left, top, width, height })
-    .jpeg({ quality: JPEG_OUTPUT_QUALITY })
-    .toBuffer();
-};
+const mapFiguresToFullImage = (figures: FigureInfo[]): FigureInfo[] =>
+  figures.map((figure) => ({
+    ...figure,
+    boundingBox: mapBoundingBoxFromCenteredCrop(
+      figure.boundingBox,
+      FIGURE_CROP_MARGIN,
+    ),
+  }));
 
 // --- Public API ---
 
 export const detectFigures = async (
-  base64Image: string,
-  imageBuffer: Buffer,
+  image: ImageData,
   apiKey: string,
 ): Promise<FigureInfo[]> => {
   const result = await callVisionLLM<{ figures: FigureInfo[] }>(
-    base64Image,
+    toVisionImageSource(image),
     apiKey,
     FIGURES_PROMPT,
     "Identify all figures on this book page.",
@@ -99,30 +86,25 @@ export const detectFigures = async (
     FIGURES_SCHEMA,
   );
 
-  clampBoxes(result.figures);
+  const figures = clampFigures(result.figures);
 
   // If any figures have degenerate boxes, retry with a 10%-cropped image to reduce noise
-  if (result.figures.length > 0 && result.figures.some(hasInvalidBox)) {
-    const croppedBuffer = await cropImageCenter(imageBuffer);
-    const croppedBase64 = croppedBuffer.toString("base64");
+  if (figures.length > 0 && figures.some(hasInvalidBox)) {
+    const croppedImage = await cropImageCenter(image, FIGURE_CROP_MARGIN);
     const retryResult = await callVisionLLM<{ figures: FigureInfo[] }>(
-      croppedBase64,
+      toVisionImageSource(croppedImage),
       apiKey,
       FIGURES_PROMPT,
       "Identify all figures on this book page.",
       "page_figures",
       FIGURES_SCHEMA,
     );
-    clampBoxes(retryResult.figures);
+    const retryFigures = clampFigures(retryResult.figures);
 
-    if (
-      retryResult.figures.length > 0 &&
-      !retryResult.figures.some(hasInvalidBox)
-    ) {
-      retryResult.figures.forEach(mapBoxToFullImage);
-      return retryResult.figures;
+    if (retryFigures.length > 0 && !retryFigures.some(hasInvalidBox)) {
+      return mapFiguresToFullImage(retryFigures);
     }
   }
 
-  return result.figures;
+  return figures;
 };

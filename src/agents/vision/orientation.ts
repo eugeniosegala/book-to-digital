@@ -1,6 +1,8 @@
-import { ORIENTATION_LLM_MIN_CONFIDENCE } from "../../config.js";
+import { ORIENTATION_LLM_MIN_CONFIDENCE } from "../../config/image.js";
 import { callVisionLLM } from "../../clients/vision-llm.js";
-import { rotateImage, type ImageData } from "../../utils/image.js";
+import { rotateImage, toVisionImageSource } from "../../utils/image.js";
+import type { ImageData } from "../../types/image.js";
+import type { RotationDegrees } from "../../types/vision.js";
 
 const ORIENTATION_PROMPT = `You are analyzing a photographed book page. Your ONLY task is to choose the rotation needed to make the page upright for reading.
 
@@ -29,17 +31,17 @@ export const normalizePageOrientation = async (
   const isPortrait = image.height > image.width;
 
   const result = await callVisionLLM<{
-    rotationDegrees: "0" | "90" | "180" | "270";
+    rotationDegrees: `${RotationDegrees}`;
     confidence: number;
   }>(
-    image.buffer.toString("base64"),
+    toVisionImageSource(image),
     apiKey,
     ORIENTATION_PROMPT,
     "Choose the clockwise rotation needed to make this photographed book page upright. Return only 0, 90, 180, or 270.",
     "page_orientation",
     ORIENTATION_SCHEMA,
   );
-  const rotationDegrees = Number(result.rotationDegrees) as 0 | 90 | 180 | 270;
+  const rotationDegrees = Number(result.rotationDegrees) as RotationDegrees;
 
   if (isPortrait) {
     if (

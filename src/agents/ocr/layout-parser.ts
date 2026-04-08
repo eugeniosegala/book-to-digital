@@ -3,10 +3,13 @@ import {
   BlockType,
   type ContentBlock,
   type BoundingBox,
-  type VisionAnalysis,
-} from "../../types.js";
-import { TEXTRACT_BLOCK_TYPE_MAP, SKIP_BLOCK_TYPES } from "../../config.js";
-import { cropRegion, type ImageData } from "../../utils/image.js";
+} from "../../types/content.js";
+import type { VisionAnalysis } from "../../types/vision.js";
+import {
+  TEXTRACT_BLOCK_TYPE_MAP,
+  SKIP_BLOCK_TYPES,
+} from "../../config/block-rules.js";
+import { cropRegion } from "../../utils/image.js";
 import * as log from "../../utils/logger.js";
 
 export interface ParseResult {
@@ -55,11 +58,18 @@ const buildFigureBlock = async (
   box: BoundingBox,
   isFullPage: boolean,
 ): Promise<ContentBlock> => {
-  let imageData: ImageData;
+  let imageData: Pick<ContentBlock, "imageBuffer" | "imageDimensions">;
   if (isFullPage) {
-    imageData = { buffer: imageBuffer, width: imageWidth, height: imageHeight };
+    imageData = {
+      imageBuffer: imageBuffer,
+      imageDimensions: { width: imageWidth, height: imageHeight },
+    };
   } else {
-    imageData = await cropRegion(imageBuffer, imageWidth, imageHeight, box);
+    const cropped = await cropRegion(imageBuffer, imageWidth, imageHeight, box);
+    imageData = {
+      imageBuffer: cropped.buffer,
+      imageDimensions: { width: cropped.width, height: cropped.height },
+    };
   }
 
   return {
@@ -67,8 +77,7 @@ const buildFigureBlock = async (
     text: "",
     confidence: 100,
     boundingBox: box,
-    imageBuffer: imageData.buffer,
-    imageDimensions: { width: imageData.width, height: imageData.height },
+    ...imageData,
   };
 };
 
@@ -161,6 +170,7 @@ export const parseLayoutBlocks = async (
     if (!type) continue;
 
     if (SKIP_BLOCK_TYPES.has(type)) continue;
+    if (type === BlockType.PAGE_NUMBER) continue;
 
     // Use Textract LAYOUT_FIGURE as positional anchor, replace with closest vision figure
     if (type === BlockType.FIGURE) {

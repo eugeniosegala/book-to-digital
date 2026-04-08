@@ -1,7 +1,8 @@
 import { callOpenRouter } from "./openrouter.js";
+import type { VisionImageSource } from "../types/image.js";
 
 export const callVisionLLM = async <T>(
-  base64Image: string,
+  image: VisionImageSource,
   apiKey: string,
   systemPrompt: string,
   userText: string,
@@ -17,7 +18,9 @@ export const callVisionLLM = async <T>(
         content: [
           {
             type: "image_url",
-            image_url: { url: `data:image/jpeg;base64,${base64Image}` },
+            image_url: {
+              url: `data:${image.mimeType};base64,${image.base64}`,
+            },
           },
           { type: "text", text: userText },
         ],

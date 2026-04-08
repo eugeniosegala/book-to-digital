@@ -1,69 +1,23 @@
-# AGENTS.md
+# Repository Guidelines
 
-This file provides guidance to Codex (Codex.ai/code) when working with code in this repository.
+## Project Structure & Module Organization
+Core code lives in `src/`. Use `src/cli.ts` as the entry point and `src/pipeline.ts` for the end-to-end flow. Stage-specific logic is grouped under `src/agents/` (`scanner/`, `ocr/`, `vision/`, `document/`, `translation/`). External service wrappers live in `src/clients/`, shared settings in `src/config/`, and shared interfaces in `src/types.ts` plus `src/types/`. Tests mirror the source layout under `tests/`; reusable fixtures and helpers live in `tests/fixtures/` and `tests/support/`. Demo assets for the README are in `assets/`.
 
-## Project Overview
+## Build, Test, and Development Commands
+- `npm test` runs the full Vitest suite once.
+- `npm run test:watch` reruns tests during active development.
+- `npm run lint` runs `tsc --noEmit` for strict type checking.
+- `npm run build` compiles the CLI to `dist/`.
+- `npx tsx src/cli.ts <input-folder> -o output/book.docx` runs the pipeline locally.
 
-book-to-digital converts photos of physical books into clean, structured, fully translated digital Word documents — preserving layout, images, and meaning. Takes a folder of page photos, runs OCR + vision LLM analysis in parallel, and outputs formatted `.docx` files with optional translation.
+## Coding Style & Naming Conventions
+Write strict TypeScript with ES modules. Match the existing style: 2-space indentation, double quotes, trailing commas where Prettier adds them, and `.js` import suffixes inside `.ts` files. Use `camelCase` for functions and variables, `PascalCase` for types and interfaces, and descriptive filenames such as `page-analyzer.ts` or `layout-parser.test.ts`. Keep modules focused on one pipeline responsibility.
 
-## Commands
+## Testing Guidelines
+Vitest is the test runner. Add tests under the mirrored path in `tests/`, for example `src/agents/ocr/layout-parser.ts` maps to `tests/agents/ocr/layout-parser.test.ts`. Prefer focused unit tests with fixtures from `tests/fixtures/` and helpers from `tests/support/`. Run `npm test` before opening a PR; use `npx vitest run tests/agents/ocr/layout-parser.test.ts` for a single file.
 
-```bash
-npm test              # Run all tests (vitest run)
-npm run test:watch    # Watch mode
-npx vitest run tests/agents/ocr/layout-parser.test.ts   # Run a single test file
-npm run lint          # Type check only (tsc --noEmit)
-npm run build         # Compile to dist/
-npx tsx src/cli.ts <input-folder> [options]              # Run the CLI
-```
+## Commit & Pull Request Guidelines
+Recent history uses concise Conventional Commit prefixes such as `feat:` and `fix:`. Keep commit subjects imperative and specific, for example `fix: preserve page-number fallback`. PRs should explain the behavior change, list validation commands run, and note any input samples or generated document changes. Include screenshots or output excerpts when document layout or figure handling changes.
 
-## Tech Stack
-
-- **Runtime**: Node.js 24+ (Volta-managed), ES modules (`"type": "module"`)
-- **Language**: TypeScript (strict mode, ES2024 target, NodeNext modules)
-- **Tests**: Vitest with globals enabled (no imports needed for `describe`/`it`/`expect`)
-- **External services**: AWS Textract (OCR), OpenRouter → Gemini 3.1 Pro (vision + translation)
-- **Key libraries**: `sharp` (images), `docx` (Word generation), `commander` (CLI), `p-limit` (concurrency)
-
-## Architecture
-
-The pipeline processes book photos through a linear flow: **scan → OCR + vision → parse → build document → (optional) translate**.
-
-### Core flow (`src/pipeline.ts`)
-
-`processBook()` orchestrates the full pipeline:
-
-1. `scanForImages()` finds and sorts page photos in the input directory
-2. Pages are processed in parallel (bounded by `--concurrency`):
-   - `readImage()` loads and auto-rotates via EXIF
-   - **AWS Textract** and **Vision LLM** run in parallel per page
-   - `parseLayoutBlocks()` merges OCR + vision results, crops figures, fixes column-split text
-3. `writeDocument()` assembles all pages into a formatted `.docx`
-4. If `--translate` is set, `translatePages()` produces a second `.docx` with context-aware translation
-
-### Module organization
-
-- **`src/agents/`** — Pipeline stages, each with a single responsibility:
-  - `scanner/` — Find and sort image files
-  - `ocr/` — Parse Textract response into `ContentBlock[]`, merge multi-column text
-  - `vision/` — LLM-based figure detection + page number detection (orchestrated by `page-analyzer.ts`)
-  - `document/` — Map content blocks to docx elements and write the final file
-  - `translation/` — Page-by-page LLM translation with cross-page context overlap
-- **`src/clients/`** — External service wrappers (Textract, OpenRouter, vision LLM message formatting)
-- **`src/utils/`** — Shared helpers (image I/O, concurrency, logging, error conversion)
-- **`src/types.ts`** — All shared interfaces (`ContentBlock`, `ProcessedPage`, `PipelineConfig`, etc.)
-
-### Key design decisions
-
-- **Graceful degradation**: Vision LLM is optional. If the OpenRouter API key is missing or calls fail, the pipeline falls back to Textract-only results.
-- **Structured LLM output**: Vision and translation calls use JSON schemas to enforce response structure.
-- **Column merging**: `parseLayoutBlocks()` detects and repairs text split across columns (hyphenated words, mid-sentence breaks).
-- **Translation context**: The translator passes trailing blocks from previous pages as read-only context so the LLM maintains continuity across page boundaries.
-- **Error resilience**: Individual page failures are logged and shown as placeholders in the output — they don't stop the pipeline.
-
-## Environment Variables
-
-Defined in `.env` (see `.env.example`):
-
-- `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY` / `AWS_REGION` — AWS credentials (or use `~/.aws/credentials`)
-- `OPENROUTER_API_KEY` — Enables vision LLM features and translation
+## Security & Configuration Tips
+Do not commit `.env` or credentials. Copy `.env.example` locally and provide `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_REGION`, and `OPENROUTER_API_KEY` as needed. Treat debug output under `debug/` as local-only unless it has been reviewed for sensitive content.

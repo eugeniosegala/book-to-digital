@@ -21,23 +21,25 @@ npx tsx src/cli.ts <input-folder> [options]              # Run the CLI
 
 - **Runtime**: Node.js 24+ (Volta-managed), ES modules (`"type": "module"`)
 - **Language**: TypeScript (strict mode, ES2024 target, NodeNext modules)
-- **Tests**: Vitest with globals enabled (no imports needed for `describe`/`it`/`expect`)
+- **Tests**: Vitest with globals enabled (no imports needed for `describe`/`it`/`expect`), 10s timeout
 - **External services**: AWS Textract (OCR), OpenRouter → Gemini 3.1 Pro (vision + translation)
 - **Key libraries**: `sharp` (images), `docx` (Word generation), `commander` (CLI), `p-limit` (concurrency)
 
 ## Architecture
 
-The pipeline processes book photos through a linear flow: **scan → OCR + vision → parse → build document → (optional) translate**.
+The pipeline processes book photos through a linear flow: **scan → OCR + vision → parse → reorder → build document → (optional) translate**.
 
 ### Core flow (`src/pipeline.ts`)
 
 `processBook()` orchestrates the full pipeline:
 
 1. `scanForImages()` finds and sorts page photos in the input directory
-2. Pages are processed in parallel (bounded by `--concurrency`):
+2. Pages are processed in parallel (bounded by `--concurrency`, default 5):
    - `readImage()` loads and auto-rotates via EXIF
-   - **AWS Textract** and **Vision LLM** run in parallel per page
-   - `parseLayoutBlocks()` merges OCR + vision results, crops figures, fixes column-split text
+   - `normalizePageOrientation()` uses LLM to detect/correct rotation
+   - **AWS Textract** and **Vision LLM** (`analyzePageVision`) run in parallel per page
+   - `parseLayoutBlocks()` merges OCR + vision results, crops figures, attaches captions
+   - `reorderBlocks()` uses LLM to fix reading order on multi-column/complex pages
 3. `writeDocument()` assembles all pages into a formatted `.docx`
 4. If `--translate` is set, `translatePages()` produces a second `.docx` with context-aware translation
 
@@ -45,21 +47,42 @@ The pipeline processes book photos through a linear flow: **scan → OCR + visio
 
 - **`src/agents/`** — Pipeline stages, each with a single responsibility:
   - `scanner/` — Find and sort image files
-  - `ocr/` — Parse Textract response into `ContentBlock[]`, merge multi-column text
-  - `vision/` — LLM-based figure detection + page number detection (orchestrated by `page-analyzer.ts`)
+  - `ocr/` — Parse Textract response into `ContentBlock[]`, merge with vision results
+  - `vision/` — LLM-based analysis orchestrated by `page-analyzer.ts`:
+    - `orientation.ts` — Rotation detection/correction (portrait only, ≥0.9 confidence)
+    - `figures.ts` — Figure detection with bounding boxes, captions, type classification; retries on degenerate boxes
+    - `page-number.ts` — Printed page number extraction (distinguishes from chapter numbers, annotations)
+    - `reading-order.ts` — LLM-based block reordering for multi-column layouts; falls back to original order
+    - `reading-order-postprocess.ts` — Caption snapping, duplicate removal (Dice ≥0.7), text continuation merging
   - `document/` — Map content blocks to docx elements and write the final file
-  - `translation/` — Page-by-page LLM translation with cross-page context overlap
-- **`src/clients/`** — External service wrappers (Textract, OpenRouter, vision LLM message formatting)
-- **`src/utils/`** — Shared helpers (image I/O, concurrency, logging, error conversion)
-- **`src/types.ts`** — All shared interfaces (`ContentBlock`, `ProcessedPage`, `PipelineConfig`, etc.)
+  - `translation/` — Page-by-page LLM translation with:
+    - `context.ts` — Before/after context from neighboring pages (2 blocks each direction)
+    - `prompts.ts` — System/user prompts with `[BEFORE]`/`[TRANSLATE]`/`[AFTER]` message structure
+    - `detector.ts` — Detects untranslated source spans (≥3 words, ≥20 chars) to trigger retries
+    - `hyphenation.ts` — Repairs cross-page hyphen splits before translation
+    - `clone.ts` — Deep-copies pages so originals are preserved
+    - `translator.ts` — Orchestrates batch translation (size 5) with retry: batch → per-block → fail
+- **`src/clients/`** — External service wrappers:
+  - `openrouter.ts` — JSON-schema-enforced LLM calls, retries on 408/409/429/5xx with exponential backoff (1s→2s→4s, max 3)
+  - `textract.ts` — AWS Textract with LAYOUT feature, client pooled by region
+  - `vision-llm.ts` — Formats image+text as multipart messages for OpenRouter
+- **`src/config/`** — Constants split by concern (block-rules, clients, document styling, image params, languages, pipeline defaults, reading-order heuristics, runtime env). Barrel-exported via `src/config.ts`.
+- **`src/types/`** — Interfaces split by domain (content, image, pipeline, vision). Barrel-exported via `src/types.ts`.
+- **`src/utils/`** — Shared helpers (image I/O, bounding-box math, concurrency, logging, error conversion)
 
 ### Key design decisions
 
-- **Graceful degradation**: Vision LLM is optional. If the OpenRouter API key is missing or calls fail, the pipeline falls back to Textract-only results.
-- **Structured LLM output**: Vision and translation calls use JSON schemas to enforce response structure.
-- **Column merging**: `parseLayoutBlocks()` detects and repairs text split across columns (hyphenated words, mid-sentence breaks).
-- **Translation context**: The translator passes trailing blocks from previous pages as read-only context so the LLM maintains continuity across page boundaries.
+- **Graceful degradation**: Vision LLM is optional. If the OpenRouter API key is missing or calls fail, the pipeline falls back to Textract-only results. Reading order correction and orientation detection also degrade gracefully.
+- **Structured LLM output**: All LLM calls enforce JSON schemas via OpenRouter's `json_schema` response format with temperature 0.
+- **Column merging**: Reading-order postprocessing detects and merges text split across columns using heuristics (gap, overlap, case, punctuation, vocabulary scoring).
+- **Translation context**: The translator passes trailing blocks from previous pages and leading blocks from next pages as read-only context so the LLM maintains continuity across page boundaries.
 - **Error resilience**: Individual page failures are logged and shown as placeholders in the output — they don't stop the pipeline.
+
+### Test conventions
+
+- Test factories in `tests/support/content-factories.ts` (`makeBlock()`, `makePage()`) — always use these for test data
+- OpenRouter/fetch mocking via `tests/support/openrouter-mocks.ts` (`setupMockFetch()`)
+- Tests verify LLM message structure (system prompt content, user message format) not just outputs
 
 ## Environment Variables
 

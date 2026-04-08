@@ -1,30 +1,25 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { analyzePageVision } from "../../../src/agents/vision/page-enrichment.js";
+import { describe, it, expect } from "vitest";
+import { analyzePageVision } from "../../../src/agents/vision/page-analyzer.js";
+import type { ImageData } from "../../../src/types/image.js";
+import {
+  okJsonSchemaResponse,
+  setupMockFetch,
+} from "../../support/openrouter-mocks.js";
 
-const mockFetch = vi.fn();
+const mockFetch = setupMockFetch();
 
-beforeEach(() => {
-  vi.stubGlobal("fetch", mockFetch);
-  vi.spyOn(global, "setTimeout").mockImplementation((fn: () => void) => {
-    fn();
-    return 0 as unknown as NodeJS.Timeout;
-  });
-});
-
-afterEach(() => {
-  vi.restoreAllMocks();
-});
-
-const okResponse = (content: string) => ({
-  ok: true,
-  json: async () => ({ choices: [{ message: { content } }] }),
+const makeImage = (text: string): ImageData => ({
+  buffer: Buffer.from(text),
+  width: 1000,
+  height: 1400,
+  mimeType: "image/jpeg",
 });
 
 const mockBothCalls = (pageNumber: string | null, figures: unknown[] = []) => {
   // First call: page number, second call: figures
   mockFetch
-    .mockResolvedValueOnce(okResponse(JSON.stringify({ pageNumber })))
-    .mockResolvedValueOnce(okResponse(JSON.stringify({ figures })));
+    .mockResolvedValueOnce(okJsonSchemaResponse({ pageNumber }))
+    .mockResolvedValueOnce(okJsonSchemaResponse({ figures }));
 };
 
 describe("analyzePageVision", () => {
@@ -37,7 +32,7 @@ describe("analyzePageVision", () => {
       },
     ]);
 
-    const result = await analyzePageVision(Buffer.from("fake"), "test-key");
+    const result = await analyzePageVision(makeImage("fake"), "test-key");
     expect(result.pageNumber).toBe("42");
     expect(result.figures).toHaveLength(1);
     expect(result.figures[0].caption).toBe("Abb. 1: Test figure");
@@ -47,7 +42,7 @@ describe("analyzePageVision", () => {
   it("handles pages with no figures", async () => {
     mockBothCalls("10", []);
 
-    const result = await analyzePageVision(Buffer.from("fake"), "test-key");
+    const result = await analyzePageVision(makeImage("fake"), "test-key");
     expect(result.pageNumber).toBe("10");
     expect(result.figures).toEqual([]);
   });
@@ -55,7 +50,7 @@ describe("analyzePageVision", () => {
   it("handles null page number", async () => {
     mockBothCalls(null, []);
 
-    const result = await analyzePageVision(Buffer.from("fake"), "test-key");
+    const result = await analyzePageVision(makeImage("fake"), "test-key");
     expect(result.pageNumber).toBeNull();
   });
 
@@ -68,7 +63,7 @@ describe("analyzePageVision", () => {
       },
     ]);
 
-    const result = await analyzePageVision(Buffer.from("fake"), "test-key");
+    const result = await analyzePageVision(makeImage("fake"), "test-key");
     const box = result.figures[0].boundingBox;
     expect(box.top).toBe(0);
     expect(box.left).toBe(0.9);
@@ -83,10 +78,10 @@ describe("analyzePageVision", () => {
     // Override first successful call for figures (runs concurrently)
     mockFetch.mockResolvedValueOnce(errorResponse);
     mockFetch.mockResolvedValueOnce(
-      okResponse(JSON.stringify({ figures: [] })),
+      okJsonSchemaResponse({ figures: [] }),
     );
 
-    const result = await analyzePageVision(Buffer.from("fake"), "test-key");
+    const result = await analyzePageVision(makeImage("fake"), "test-key");
     expect(result.pageNumber).toBeNull();
     expect(result.figures).toEqual([]);
   });
@@ -95,11 +90,11 @@ describe("analyzePageVision", () => {
     const errorResponse = { ok: false, status: 500, text: async () => "error" };
     mockFetch.mockResolvedValue(errorResponse);
     mockFetch.mockResolvedValueOnce(
-      okResponse(JSON.stringify({ pageNumber: "5" })),
+      okJsonSchemaResponse({ pageNumber: "5" }),
     );
     mockFetch.mockResolvedValueOnce(errorResponse);
 
-    const result = await analyzePageVision(Buffer.from("fake"), "test-key");
+    const result = await analyzePageVision(makeImage("fake"), "test-key");
     expect(result.pageNumber).toBe("5");
     expect(result.figures).toEqual([]);
   });
@@ -107,7 +102,7 @@ describe("analyzePageVision", () => {
   it("sends separate requests with correct schemas", async () => {
     mockBothCalls(null, []);
 
-    await analyzePageVision(Buffer.from("test"), "my-key");
+    await analyzePageVision(makeImage("test"), "my-key");
 
     expect(mockFetch).toHaveBeenCalledTimes(2);
 
