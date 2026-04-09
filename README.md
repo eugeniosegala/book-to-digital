@@ -14,10 +14,6 @@ Already used in real-world research workflows by art curators and historians wor
   />
 </p>
 
-## Demo
-
-[Watch the demo video](assets/cartopia-demo.mp4)
-
 ## How it works
 
 1. Scan the input folder for page images and sort them by filename or file date.
