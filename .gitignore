@@ -146,7 +146,7 @@ vite.config.ts.timestamp-*
 *~
 
 # Claude Code
-.claude/
+.claude/settings.local.json
 
 # Output
 output/
