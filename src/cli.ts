@@ -39,7 +39,7 @@ const parseSortOrder = (value: string): SortOrder => {
 const program = new Command();
 
 program
-  .name("book-to-digital")
+  .name("cartopia")
   .description(
     "Convert photos of physical books into structured Word documents",
   )

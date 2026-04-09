@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-book-to-digital converts photos of physical books into clean, structured, fully translated digital Word documents — preserving layout, images, and meaning. Takes a folder of page photos, runs OCR + vision LLM analysis in parallel, and outputs formatted `.docx` files with optional translation.
+Cartopia converts photos of physical books into clean, structured, fully translated digital Word documents — preserving layout, images, and meaning. Takes a folder of page photos, runs OCR + vision LLM analysis in parallel, and outputs formatted `.docx` files with optional translation.
 
 ## Commands
 

@@ -1,13 +1,14 @@
-# Book to Digital
+# Cartopia
 
-Convert photos of physical books into clean, structured digital Word documents — preserving layout, images, and meaning.
+Convert photos of physical books into clean, structured digital Word documents, partially preserving the original layout while optimising for readability and reading speed.
 
-This repository is designed to help researchers turn physical books into digital documents, and optionally translated
-versions, so the material is easier to use in their research workflows.
+Cartopia helps researchers, art curators, and academics unlock books that would otherwise be inaccessible, whether due to language barriers, fragile physical copies, or limited availability. It produces searchable, translatable Word documents from simple phone photos, so you can study a 19th-century German art history volume in English, or make a rare Italian manuscript available to your entire team.
+
+Already used in real-world research workflows by art curators and historians working with multilingual collections.
 
 <p align="center">
   <img
-    src="assets/readme-hero-researcher-cartoon.png"
+    src="assets/cartopia.png"
     alt="Cartoon researcher converting physical book pages into digital documents"
     width="500"
   />
@@ -15,7 +16,7 @@ versions, so the material is easier to use in their research workflows.
 
 ## Demo
 
-[Watch the demo video](assets/book-to-digital-demo.mp4)
+[Watch the demo video](assets/cartopia-demo.mp4)
 
 ## How it works
 

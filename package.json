@@ -1,12 +1,12 @@
 {
-  "name": "book-to-digital",
+  "name": "cartopia",
   "version": "0.1.0",
   "description": "Converts photos of physical books into clean, structured, fully translated digital documents",
   "private": true,
   "license": "MIT",
   "type": "module",
   "bin": {
-    "book-to-digital": "./dist/cli.js"
+    "cartopia": "./dist/cli.js"
   },
   "scripts": {
     "build": "tsc",
