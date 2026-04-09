@@ -1,6 +1,6 @@
 # Cartopia
 
-Convert photos of physical books into clean, structured digital Word documents, partially preserving the original layout while optimising for readability and reading speed.
+AI agent that converts photos of book pages into clean, structured digital Word documents, partially preserving the original layout while optimising for readability and reading speed.
 
 Cartopia helps researchers, art curators, and academics unlock books that would otherwise be inaccessible, whether due to language barriers, fragile physical copies, or limited availability. It produces searchable, translatable Word documents from simple phone photos, so you can study a 19th-century German art history volume in English, or make a rare Italian manuscript available to your entire team.
 
@@ -29,7 +29,7 @@ Already used in real-world research workflows by art curators and historians wor
 5. Build the primary Word document from the processed pages, including page markers, text, tables, figures, captions,
    and inline error placeholders for any failed pages.
 6. If translation is enabled, clone the processed pages, repair cross-page hyphen splits, translate translatable blocks
-   in batches with neighboring-page context, and write a second `.docx` alongside the original.
+   in batches with neighbouring-page context, and write a second `.docx` alongside the original.
 
 If `--verbose` is enabled, the pipeline also writes per-page debug JSON files under `debug/original` and
 `debug/translated`.
