@@ -1,6 +1,6 @@
 import { ORIENTATION_LLM_MIN_CONFIDENCE } from "../../config/image.js";
 import { resolveThinkingEffort } from "../../config/clients.js";
-import { callVisionLLM } from "../../clients/vision-llm.js";
+import { callVisionOpenRouter } from "../../clients/openrouter.js";
 import { rotateImage, toVisionImageSource } from "../../utils/image.js";
 import type { ImageData } from "../../types/image.js";
 import type { ThinkingEffort } from "../../types/pipeline.js";
@@ -33,7 +33,7 @@ export const normalizePageOrientation = async (
 ): Promise<ImageData> => {
   const isPortrait = image.height > image.width;
 
-  const result = await callVisionLLM<{
+  const result = await callVisionOpenRouter<{
     rotationDegrees: `${RotationDegrees}`;
     confidence: number;
   }>(

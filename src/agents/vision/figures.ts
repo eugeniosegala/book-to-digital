@@ -1,7 +1,7 @@
 import { FIGURE_CROP_MARGIN } from "../../config/image.js";
 import { resolveThinkingEffort } from "../../config/clients.js";
 import type { FigureInfo } from "../../types/vision.js";
-import { callVisionLLM } from "../../clients/vision-llm.js";
+import { callVisionOpenRouter } from "../../clients/openrouter.js";
 import { cropImageCenter, toVisionImageSource } from "../../utils/image.js";
 import type { ImageData } from "../../types/image.js";
 import type { ThinkingEffort } from "../../types/pipeline.js";
@@ -81,7 +81,7 @@ export const detectFigures = async (
   effortOverride?: ThinkingEffort,
 ): Promise<FigureInfo[]> => {
   const effort = resolveThinkingEffort("page_figures", effortOverride);
-  const result = await callVisionLLM<{ figures: FigureInfo[] }>(
+  const result = await callVisionOpenRouter<{ figures: FigureInfo[] }>(
     toVisionImageSource(image),
     apiKey,
     FIGURES_PROMPT,
@@ -96,7 +96,7 @@ export const detectFigures = async (
   // If any figures have degenerate boxes, retry with a 10%-cropped image to reduce noise
   if (figures.length > 0 && figures.some(hasInvalidBox)) {
     const croppedImage = await cropImageCenter(image, FIGURE_CROP_MARGIN);
-    const retryResult = await callVisionLLM<{ figures: FigureInfo[] }>(
+    const retryResult = await callVisionOpenRouter<{ figures: FigureInfo[] }>(
       toVisionImageSource(croppedImage),
       apiKey,
       FIGURES_PROMPT,

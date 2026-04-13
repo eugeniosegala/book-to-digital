@@ -1,5 +1,5 @@
 import { resolveThinkingEffort } from "../../config/clients.js";
-import { callVisionLLM } from "../../clients/vision-llm.js";
+import { callVisionOpenRouter } from "../../clients/openrouter.js";
 import type { VisionImageSource } from "../../types/image.js";
 import type { ThinkingEffort } from "../../types/pipeline.js";
 
@@ -33,7 +33,7 @@ export const detectPageNumber = async (
   apiKey: string,
   effortOverride?: ThinkingEffort,
 ): Promise<string | null> => {
-  const result = await callVisionLLM<{ pageNumber: string | null }>(
+  const result = await callVisionOpenRouter<{ pageNumber: string | null }>(
     image,
     apiKey,
     PAGE_NUMBER_PROMPT,

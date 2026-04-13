@@ -8,7 +8,7 @@ Every LLM call in the pipeline uses identical model parameters (temperature 0, n
 - Define a set of effort levels (e.g., `low`, `medium`, `high`) that map to concrete model parameters — initially targeting OpenRouter's pass-through for Gemini's `thinkingConfig.thinkingBudget` and applicable to other providers' reasoning effort controls.
 - Add per-task default effort configuration in `src/config/` so each pipeline stage has a sensible default (e.g., `page-number` → `low`, `translation` → `high`).
 - Expose a CLI option to override the global default effort level, allowing users to trade off speed/cost vs. quality.
-- Wire the effort parameter through `callOpenRouter` and `callVisionLLM` to the API request body.
+- Wire the effort parameter through `callOpenRouter` and `callVisionOpenRouter` to the API request body.
 
 ## Capabilities
 

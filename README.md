@@ -107,13 +107,13 @@ npx tsx src/cli.ts <input-folder> [options]
 
 ```bash
 # Process all pages, sorted by filename
-npx tsx src/cli.ts ./book-photos -o output/my-book.docx -r eu-central-1 -v
+npx tsx src/cli.ts ./examples/sample-book-o output/my-book.docx -r eu-central-1 -v
 
 # Process first 5 pages only, sorted by file date
-npx tsx src/cli.ts ./book-photos -n 5 -s date -o output/test.docx -r eu-central-1
+npx tsx src/cli.ts ./examples/sample-book -n 5 -s date -o output/my-book.docx -r eu-central-1
 
 # Process and translate to English (produces my-book.docx + my-book.en.docx)
-npx tsx src/cli.ts ./book-photos -o output/my-book.docx -r eu-central-1 --translate en
+npx tsx src/cli.ts ./examples/sample-book -o output/my-book.docx -r eu-central-1 --translate en
 ```
 
 ## Development

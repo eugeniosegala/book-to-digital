@@ -1,6 +1,6 @@
 import { READING_ORDER_MAX_PREVIEW_LENGTH } from "../../config/reading-order.js";
 import { resolveThinkingEffort } from "../../config/clients.js";
-import { callVisionLLM } from "../../clients/vision-llm.js";
+import { callVisionOpenRouter } from "../../clients/openrouter.js";
 import type { ContentBlock } from "../../types/content.js";
 import type { VisionImageSource } from "../../types/image.js";
 import type { ThinkingEffort } from "../../types/pipeline.js";
@@ -69,7 +69,7 @@ export const reorderBlocks = async (
   const blockSummary = summarizeBlocks(contentBlocks);
   const userText = `Here are the content blocks to reorder:\n\n${blockSummary}\n\nReturn the indices in correct reading order.`;
 
-  const result = await callVisionLLM<{ order: number[] }>(
+  const result = await callVisionOpenRouter<{ order: number[] }>(
     imageSource,
     apiKey,
     READING_ORDER_PROMPT,

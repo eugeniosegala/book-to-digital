@@ -63,9 +63,8 @@ The pipeline processes book photos through a linear flow: **scan → OCR + visio
     - `clone.ts` — Deep-copies pages so originals are preserved
     - `translator.ts` — Orchestrates batch translation (size 5) with retry: batch → per-block → fail
 - **`src/clients/`** — External service wrappers:
-  - `openrouter.ts` — JSON-schema-enforced LLM calls, retries on 408/409/429/5xx with exponential backoff (1s→2s→4s, max 3)
+  - `openrouter.ts` — Provider facade for all OpenRouter calls: `callOpenRouter` (text completions) and `callVisionOpenRouter` (multimodal image+text). JSON-schema-enforced, retries on 408/409/429/5xx with exponential backoff (1s→2s→4s, max 3)
   - `textract.ts` — AWS Textract with LAYOUT feature, client pooled by region
-  - `vision-llm.ts` — Formats image+text as multipart messages for OpenRouter
 - **`src/config/`** — Constants split by concern (block-rules, clients, document styling, image params, languages, pipeline defaults, reading-order heuristics, runtime env). Barrel-exported via `src/config.ts`.
 - **`src/types/`** — Interfaces split by domain (content, image, pipeline, vision). Barrel-exported via `src/types.ts`.
 - **`src/utils/`** — Shared helpers (image I/O, bounding-box math, concurrency, logging, error conversion)

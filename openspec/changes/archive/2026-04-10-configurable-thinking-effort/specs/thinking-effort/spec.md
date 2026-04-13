@@ -47,12 +47,12 @@ The system SHALL accept a `--thinking-effort <level>` CLI option with values `no
 - **THEN** each task SHALL use its own configured default effort level
 
 ### Requirement: Effort parameter plumbing through client interfaces
-The `CompletionOptions` interface SHALL accept an optional `thinkingEffort` field. The `callVisionLLM` function SHALL accept an optional `thinkingEffort` parameter and pass it through to `callOpenRouter`.
+The `CompletionOptions` interface SHALL accept an optional `thinkingEffort` field. The `callVisionOpenRouter` function SHALL accept an optional `thinkingEffort` parameter and pass it through to `callOpenRouter`.
 
 #### Scenario: CompletionOptions accepts thinkingEffort
 - **WHEN** a caller passes `{ thinkingEffort: "high" }` in `CompletionOptions`
 - **THEN** `callOpenRouter` SHALL include `reasoning.effort` set to `"high"` in the API request
 
-#### Scenario: callVisionLLM passes effort through
-- **WHEN** `callVisionLLM` is called with `thinkingEffort: "medium"`
+#### Scenario: callVisionOpenRouter passes effort through
+- **WHEN** `callVisionOpenRouter` is called with `thinkingEffort: "medium"`
 - **THEN** the underlying `callOpenRouter` call SHALL receive `thinkingEffort: "medium"` in its options

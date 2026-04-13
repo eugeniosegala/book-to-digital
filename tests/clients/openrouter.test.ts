@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { callOpenRouter } from "../../src/clients/openrouter.js";
+import {
+  callOpenRouter,
+  callVisionOpenRouter,
+} from "../../src/clients/openrouter.js";
 import {
   okCompletionResponse,
   setupMockFetch,
@@ -92,5 +95,84 @@ describe("callOpenRouter", () => {
 
     const body = JSON.parse(mockFetch.mock.calls[0][1].body);
     expect(body.reasoning).toEqual({ effort: "low" });
+  });
+});
+
+const image = { base64: "abc123", mimeType: "image/jpeg" as const };
+const schema = {
+  type: "object",
+  properties: { label: { type: "string" } },
+  required: ["label"],
+  additionalProperties: false,
+};
+
+describe("callVisionOpenRouter", () => {
+  it("sends the image as a base64 data URI in the user message", async () => {
+    mockFetch.mockResolvedValueOnce(okCompletionResponse('{"label":"cat"}'));
+
+    await callVisionOpenRouter(
+      image,
+      "test-key",
+      "system prompt",
+      "describe this",
+      "test",
+      schema,
+    );
+
+    const body = JSON.parse(mockFetch.mock.calls[0][1].body);
+    const userContent = body.messages[1].content;
+    expect(userContent[0]).toEqual({
+      type: "image_url",
+      image_url: { url: "data:image/jpeg;base64,abc123" },
+    });
+  });
+
+  it("includes the text part in the user message", async () => {
+    mockFetch.mockResolvedValueOnce(okCompletionResponse('{"label":"dog"}'));
+
+    await callVisionOpenRouter(
+      image,
+      "test-key",
+      "system prompt",
+      "what is this?",
+      "test",
+      schema,
+    );
+
+    const body = JSON.parse(mockFetch.mock.calls[0][1].body);
+    const userContent = body.messages[1].content;
+    expect(userContent[1]).toEqual({ type: "text", text: "what is this?" });
+  });
+
+  it("forwards thinkingEffort to the request body", async () => {
+    mockFetch.mockResolvedValueOnce(okCompletionResponse('{"label":"bird"}'));
+
+    await callVisionOpenRouter(
+      image,
+      "test-key",
+      "system prompt",
+      "describe",
+      "test",
+      schema,
+      "high",
+    );
+
+    const body = JSON.parse(mockFetch.mock.calls[0][1].body);
+    expect(body.reasoning).toEqual({ effort: "high" });
+  });
+
+  it("returns the parsed response data", async () => {
+    mockFetch.mockResolvedValueOnce(okCompletionResponse('{"label":"fish"}'));
+
+    const result = await callVisionOpenRouter<{ label: string }>(
+      image,
+      "test-key",
+      "system prompt",
+      "describe",
+      "test",
+      schema,
+    );
+
+    expect(result).toEqual({ label: "fish" });
   });
 });

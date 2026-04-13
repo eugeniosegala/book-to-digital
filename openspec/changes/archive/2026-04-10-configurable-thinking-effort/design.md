@@ -53,7 +53,7 @@ translation    → "high"
 
 **Decision**: Add `thinkingEffort?: ThinkingEffort` to `CompletionOptions`. When provided, `callOpenRouter` maps it to the provider-specific request body parameter. When omitted, no thinking parameters are sent (preserving current behavior as the default).
 
-**Rationale**: Optional field means zero changes required for callers that don't care about thinking effort. The `callVisionLLM` wrapper gains a matching optional parameter and passes it through.
+**Rationale**: Optional field means zero changes required for callers that don't care about thinking effort. The `callVisionOpenRouter` wrapper gains a matching optional parameter and passes it through.
 
 ### 5. Pass effort level directly via reasoning.effort
 

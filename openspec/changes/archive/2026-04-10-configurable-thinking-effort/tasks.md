@@ -8,7 +8,7 @@
 
 - [x] 2.1 Add optional `thinkingEffort` field to `CompletionOptions` in `src/clients/openrouter.ts`
 - [x] 2.2 Implement provider-specific budget mapping in `callOpenRouter` — translate effort level to `provider.google.thinkingConfig.thinkingBudget` in the request body
-- [x] 2.3 Add optional `thinkingEffort` parameter to `callVisionLLM` and pass it through to `callOpenRouter`
+- [x] 2.3 Add optional `thinkingEffort` parameter to `callVisionOpenRouter` and pass it through to `callOpenRouter`
 
 ## 3. Call Site Updates
 
